@@ -1,23 +1,546 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-TW">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <title>瘋系列東三塔倒數</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>瘋系列東三塔倒數</title>
+    <!-- 引入 DotGothic16 (支援漢字的像素字體) 和 Press Start 2P -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #2c2137;
+            --text-color: #ffffff;
+            --accent-color: #76428a;
+            --highlight: #5ac54f;
+            --secondary: #d95763;
+            --pixel-size: 4px;
+            --dialog-bg: #202020;
+            --dialog-border: #fff;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            /* 改用 DotGothic16 以支援中文像素風格 */
+            font-family: 'DotGothic16', 'Press Start 2P', cursive;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 背景網格裝飾 */
+        .grid-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* 主容器 */
+        .container {
+            z-index: 10;
+            text-align: center;
+            border: var(--pixel-size) solid var(--text-color);
+            padding: 2rem;
+            background-color: rgba(0, 0, 0, 0.6);
+            box-shadow: 
+                calc(var(--pixel-size) * -2) calc(var(--pixel-size) * 2) 0 0 rgba(0,0,0,0.5);
+            position: relative;
+            max-width: 90%; /* 手機版寬度限制 */
+            margin-bottom: 20px;
+            width: 600px; /* 電腦版最大寬度 */
+        }
+
+        /* 日期顯示 */
+        .date-display {
+            font-family: 'Press Start 2P', cursive;
+            color: var(--highlight);
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 0 #000;
+            letter-spacing: 1px;
+        }
+
+        /* 標題 */
+        h1 {
+            font-size: 2rem;
+            margin-top: 0;
+            margin-bottom: 2rem;
+            line-height: 1.4;
+            color: #fbf236;
+            text-shadow: 4px 4px 0 #000;
+            font-family: 'DotGothic16', sans-serif;
+        }
+
+        /* 計時器佈局 */
+        .countdown {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap; /* 手機版自動換行 */
+            gap: 1.5rem;
+        }
+
+        .time-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .number {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 2.5rem;
+            color: var(--text-color);
+            text-shadow: 4px 4px 0 var(--accent-color);
+            background: #222;
+            padding: 10px;
+            border: 4px solid #555;
+            box-shadow: inset 4px 4px 0 #000; 
+            min-width: 80px;
+            /* 手機版調整：確保數字不會溢出 */
+            display: flex; 
+            justify-content: center;
+        }
+
+        .label {
+            margin-top: 10px;
+            font-size: 1rem;
+            color: #999;
+            font-family: 'DotGothic16', sans-serif;
+        }
+
+        .separator {
+            font-size: 2rem;
+            margin-top: -1.5rem;
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        /* ==================== 
+           AI 功能與對話框樣式
+           ==================== */
+        
+        /* 召喚按鈕 */
+        .ai-btn {
+            z-index: 20;
+            margin-top: 20px;
+            padding: 15px 20px;
+            font-family: 'DotGothic16', sans-serif;
+            font-size: 1.2rem;
+            background-color: var(--secondary);
+            color: white;
+            border: 4px solid #fff;
+            cursor: pointer;
+            box-shadow: 4px 4px 0 #000;
+            transition: transform 0.1s;
+            max-width: 90%;
+            line-height: 1.4;
+        }
+
+        .ai-btn:active {
+            transform: translate(4px, 4px);
+            box-shadow: 0 0 0 #000;
+        }
+
+        .ai-btn:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+
+        /* RPG 對話框區域 */
+        .dialog-container {
+            z-index: 20;
+            position: absolute;
+            bottom: 80px; 
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 600px;
+            display: none; 
+        }
+
+        .dialog-box {
+            background-color: var(--dialog-bg);
+            border: 4px solid var(--dialog-border);
+            padding: 20px;
+            color: #fff;
+            font-family: 'DotGothic16', sans-serif;
+            font-size: 1.2rem;
+            line-height: 1.6;
+            position: relative;
+            box-shadow: 8px 8px 0 rgba(0,0,0,0.5);
+            min-height: 100px;
+            text-align: left;
+        }
+
+        /* 對話框的小箭頭 (指向下方) */
+        .dialog-box::after {
+            content: '';
+            position: absolute;
+            bottom: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-left: 12px solid transparent;
+            border-right: 12px solid transparent;
+            border-top: 12px solid var(--dialog-border);
+        }
+
+        /* 打字機游標效果 (改用底線) */
+        .cursor::after {
+            content: '_';
+            animation: blink 1s step-end infinite;
+            margin-left: 5px;
+            color: var(--highlight);
+        }
+
+        /* Close button for dialog */
+        .close-dialog {
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            cursor: pointer;
+            color: #ff5555;
+            font-family: sans-serif; /* Fallback for 'x' */
+            font-size: 1.2rem;
+        }
+
+        /* ==================== 
+           像素藝術動畫物件
+           ==================== */
+
+        .pixel-art {
+            position: absolute;
+            image-rendering: pixelated;
+            shape-rendering: crispEdges;
+            pointer-events: none;
+        }
+
+        .cloud {
+            width: 100px;
+            opacity: 0.8;
+            z-index: 1;
+        }
+        .c1 { top: 10%; left: -20%; animation: floatRight 25s linear infinite; }
+        .c2 { top: 25%; left: -20%; animation: floatRight 35s linear infinite 10s; scale: 0.8; }
+        .c3 { top: 5%; right: -20%; animation: floatLeft 40s linear infinite 5s; scale: 1.2; }
+
+        @keyframes floatRight {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(120vw); }
+        }
+        @keyframes floatLeft {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-120vw); }
+        }
+
+        /* 這裡的幽靈可以視為「心魔」或「陪練員」 */
+        .ghost-container {
+            position: absolute;
+            bottom: 20px;
+            left: -50px;
+            animation: walkAcross 20s linear infinite;
+            z-index: 5;
+        }
+
+        .ghost {
+            width: 40px;
+            height: 40px;
+            animation: bounce 0.5s steps(2) infinite alternate;
+        }
+
+        @keyframes walkAcross {
+            0% { left: -50px; transform: scaleX(1); }
+            45% { left: 45%; transform: scaleX(1); }
+            50% { left: 50%; transform: scaleX(1); }
+            55% { left: 50%; transform: scaleX(-1); }
+            100% { left: -50px; transform: scaleX(-1); }
+        }
+
+        @keyframes bounce {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-5px); }
+        }
+
+        .star {
+            width: 4px;
+            height: 4px;
+            background-color: yellow;
+            position: absolute;
+            box-shadow: 0 0 4px yellow;
+            animation: twinkle 2s steps(4) infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.2; transform: scale(0.5); }
+        }
+
+        /* RWD 調整 */
+        @media (max-width: 600px) {
+            h1 { font-size: 1.4rem; margin-bottom: 1.5rem; }
+            .date-display { font-size: 0.9rem; }
+            
+            /* 調整倒數方塊大小 */
+            .countdown { gap: 0.5rem; }
+            .number { font-size: 1.2rem; min-width: 50px; padding: 8px; border-width: 2px; }
+            .label { font-size: 0.7rem; }
+            .separator { font-size: 1rem; margin-top: -0.8rem; padding: 0 2px; }
+            
+            /* 容器調整 */
+            .container { padding: 1.5rem 0.5rem; width: 95%; max-width: 95%; }
+            
+            /* 裝飾物調整 */
+            .ghost { width: 30px; height: 30px; }
+            .ai-btn { font-size: 1rem; padding: 12px; }
+            .dialog-box { font-size: 1rem; width: 95%; }
+        }
+
+    </style>
 </head>
 <body>
-  <h1>瘋系列東三塔倒數計時</h1>
-  <p>00</p>
-  <p>DAYS</p>
-  <p>:</p>
-  <p>00</p>
-  <p>HOURS</p>
-  <p>:</p>
-  <p>00</p>
-  <p>MINS</p>
-  <p>:</p>
-  <p>00</p>
-  <p>SECS</p>召喚魔鬼教練
-  <p>x</p>
-  <p>...</p>
+
+    <div class="grid-bg"></div>
+    <div id="stars-container"></div>
+
+    <svg class="pixel-art cloud c1" viewBox="0 0 32 16" xmlns="http://www.w3.org/2000/svg">
+        <path fill="#fff" d="M8 8h4v-4h8v-4h8v8h4v8h-24z"/>
+    </svg>
+    <svg class="pixel-art cloud c2" viewBox="0 0 32 16" xmlns="http://www.w3.org/2000/svg">
+        <path fill="#acb5bd" d="M8 8h4v-4h8v-4h8v8h4v8h-24z"/>
+    </svg>
+    <svg class="pixel-art cloud c3" viewBox="0 0 32 16" xmlns="http://www.w3.org/2000/svg">
+        <path fill="#8e9aaf" d="M4 8h4v-4h12v-4h4v8h8v8h-28z"/>
+    </svg>
+
+    <div class="ghost-container">
+        <svg class="pixel-art ghost" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+            <path fill="#d95763" d="M4 2h8v2h2v8h-2v2h-2v-2h-2v2h-2v-2h-2v-2h2v-8z"/>
+            <path fill="#fff" d="M4 6h4v4h-4z M10 6h4v4h-4z"/>
+            <path fill="#3b5dc9" d="M6 7h2v2h-2z M12 7h2v2h-2z"/>
+        </svg>
+    </div>
+
+    <div class="container">
+        <!-- 新增：頂部日期顯示 -->
+        <div id="date-display" class="date-display"></div>
+
+        <!-- 標題 -->
+        <h1 id="title-text">瘋系列東三塔<br>倒數計時</h1>
+        
+        <div class="countdown">
+            <div class="time-box">
+                <div class="number" id="days">00</div>
+                <div class="label">DAYS</div>
+            </div>
+            <div class="separator">:</div>
+            <div class="time-box">
+                <div class="number" id="hours">00</div>
+                <div class="label">HOURS</div>
+            </div>
+            <div class="separator">:</div>
+            <div class="time-box">
+                <div class="number" id="minutes">00</div>
+                <div class="label">MINS</div>
+            </div>
+            <div class="separator">:</div>
+            <div class="time-box">
+                <div class="number" id="seconds">00</div>
+                <div class="label">SECS</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 按鈕文字更新，無表情符號 -->
+    <button class="ai-btn" id="summon-btn" onclick="askSpirit()">
+        召喚魔鬼教練
+    </button>
+
+    <!-- RPG Dialog Box -->
+    <div class="dialog-container" id="dialog-container">
+        <div class="dialog-box">
+            <span class="close-dialog" onclick="closeDialog()">x</span>
+            <div id="dialog-content" class="cursor">...</div>
+        </div>
+    </div>
+
+    <script>
+        const apiKey = ""; // System provides key
+
+        // --- Countdown Logic ---
+        function getTargetDate() {
+            const now = new Date();
+            let year = now.getFullYear();
+            // 目標：2月28日 早上 6:00
+            let target = new Date(year, 1, 28, 6, 0, 0);
+            if (now > target) {
+                target = new Date(year + 1, 1, 28, 6, 0, 0);
+            }
+            return target;
+        }
+
+        const targetDate = getTargetDate();
+        
+        // 設置頂部日期顯示
+        const year = targetDate.getFullYear();
+        document.getElementById('date-display').innerText = `${year}/02/28 06:00`;
+
+        function updateCountdown() {
+            const now = new Date();
+            const difference = targetDate - now;
+
+            if (difference <= 0) {
+                document.getElementById('days').innerText = "00";
+                document.getElementById('hours').innerText = "00";
+                document.getElementById('minutes').innerText = "00";
+                document.getElementById('seconds').innerText = "00";
+                document.querySelector('h1').innerText = "RACE START!";
+                return;
+            }
+
+            const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+
+            document.getElementById('days').innerText = days < 10 ? '0' + days : days;
+            document.getElementById('hours').innerText = hours < 10 ? '0' + hours : hours;
+            document.getElementById('minutes').innerText = minutes < 10 ? '0' + minutes : minutes;
+            document.getElementById('seconds').innerText = seconds < 10 ? '0' + seconds : seconds;
+        }
+
+        // --- Visual Effects ---
+        function createStars() {
+            const starContainer = document.getElementById('stars-container');
+            const starCount = 30;
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.classList.add('star');
+                const x = Math.random() * 100;
+                const y = Math.random() * 100;
+                const delay = Math.random() * 2;
+                star.style.left = `${x}%`;
+                star.style.top = `${y}%`;
+                star.style.animationDelay = `${delay}s`;
+                starContainer.appendChild(star);
+            }
+        }
+
+        // --- Gemini API Logic ---
+        async function askSpirit() {
+            const btn = document.getElementById('summon-btn');
+            const container = document.getElementById('dialog-container');
+            const content = document.getElementById('dialog-content');
+            
+            // Show loading state
+            btn.disabled = true;
+            btn.innerText = "連線中...";
+            container.style.display = 'block';
+            content.innerText = "教練正在瞪著你...";
+            content.classList.add('cursor');
+
+            const daysLeft = document.getElementById('days').innerText;
+            
+            // 激勵/魔鬼訓練 Prompts
+            const promptTypes = [
+                `我正在準備「瘋系列東三塔」自行車挑戰，距離比賽還有 ${daysLeft} 天。請用極度嚴格、兇狠、嘲諷的語氣，叫我現在立刻去練車。例如：「還看啊？去練車！腿斷了嗎？」。`,
+                `我現在在看倒數計時器而沒有在騎車，請用「魔鬼教練」的口吻罵我，叫我去爬坡或練台。`,
+                `給我一個關於長距離自行車耐力賽的嚴酷事實，並叫我不要心存僥倖，立刻去訓練。`
+            ];
+            const randomPrompt = promptTypes[Math.floor(Math.random() * promptTypes.length)];
+
+            // System prompt：設定為魔鬼教練
+            const systemPrompt = "你是由 Google Gemini 驅動的魔鬼自行車教練。你的個性極度嚴格、講話直接、帶點嘲諷，絕不留情面。你痛恨偷懶。請用繁體中文回答。回答要簡短有力，像是一句口號或斥責，不要超過 40 個字。不要使用表情符號。不要使用 Markdown。";
+
+            try {
+                const response = await fetch(
+                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [{
+                                    text: randomPrompt
+                                }]
+                            }],
+                            systemInstruction: {
+                                parts: [{
+                                    text: systemPrompt
+                                }]
+                            }
+                        })
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error('API call failed');
+                }
+
+                const data = await response.json();
+                const text = data.candidates[0].content.parts[0].text;
+                
+                typeWriter(text, content);
+
+            } catch (error) {
+                console.error(error);
+                content.innerText = "教練去騎車了... (API Error)";
+                content.classList.remove('cursor');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "召喚魔鬼教練";
+            }
+        }
+
+        function typeWriter(text, element) {
+            element.innerText = "";
+            let i = 0;
+            const speed = 50; 
+
+            function type() {
+                if (i < text.length) {
+                    element.innerText += text.charAt(i);
+                    i++;
+                    setTimeout(type, speed);
+                } else {
+                    element.classList.remove('cursor'); 
+                }
+            }
+            type();
+        }
+
+        function closeDialog() {
+            document.getElementById('dialog-container').style.display = 'none';
+        }
+
+        // Initialize
+        createStars();
+        updateCountdown();
+        setInterval(updateCountdown, 1000);
+
+    </script>
 </body>
 </html>
