@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>學期缺曠管理系統 V13.0</title>
+    <title>學期缺曠管理系統 V14.0</title>
     <style>
         :root {
             /* 全域色票變數 (莫蘭迪色系) */
@@ -13,9 +13,10 @@
             --c-ochre: #CF9546; /* 赭黃色：警告狀態 */
             --c-rust:  #C67052; /* 鐵鏽紅：危險狀態 */
 
-            /* --- 默認：明亮色調 (莫蘭迪白 V12.0 風格) --- */
+            /* --- 明亮色調 (莫蘭迪白) --- */
             --bg-gradient: linear-gradient(135deg, #FDFBF7 0%, #F4F0EA 100%);
             --glass-bg: rgba(255, 255, 255, 0.9);
+            --solid-bg: #ffffff; /* 放大課表時的實體背景 */
             --glass-border: rgba(193, 174, 141, 0.4);
             --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
             
@@ -29,10 +30,11 @@
             --progress-track-bg: #EAE5DE;
         }
 
-        /* --- 切換：深色色調 (莫蘭迪黑 V11.0 風格) --- */
+        /* --- 深色色調 (莫蘭迪黑) 預設套用 --- */
         body.dark-mode {
             --bg-gradient: linear-gradient(135deg, #222422 0%, #151615 100%);
             --glass-bg: rgba(255, 255, 255, 0.05);
+            --solid-bg: #1e1f1e; /* 深色模式下的實體背景 */
             --glass-border: rgba(193, 174, 141, 0.2);
             --card-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.4);
             
@@ -66,7 +68,7 @@
             height: 100vh;
             box-sizing: border-box;
             overflow: hidden;
-            transition: background 0.3s ease, color 0.3s ease; /* 平滑切換效果 */
+            transition: background 0.3s ease, color 0.3s ease;
         }
 
         h2, h3 { 
@@ -121,7 +123,6 @@
             font-size: 0.75rem; color: var(--c-sand); font-weight: bold;
         }
 
-        /* 日夜切換按鈕 (角落) */
         .mode-toggle {
             position: fixed; top: 15px; right: 15px; z-index: 1000;
             background: var(--glass-bg); border: 1px solid var(--glass-border);
@@ -129,7 +130,7 @@
             font-size: 0.8rem; font-weight: 600; cursor: pointer; letter-spacing: 1px;
             box-shadow: var(--card-shadow); transition: all 0.2s;
         }
-        .mode-toggle:hover { background: var(--glass-hover); border-color: var(--c-sand); }
+        .mode-toggle:hover { border-color: var(--c-sand); }
         body.dark-mode .mode-toggle::after { content: " (DARK)"; }
         body:not(.dark-mode) .mode-toggle::after { content: " (LIGHT)"; }
 
@@ -159,7 +160,7 @@
             cursor: pointer; border: 1px solid var(--checkbox-border); font-size: 0.9rem; 
             transition: all 0.2s ease; flex-grow: 1; letter-spacing: 1px; color: var(--text-muted);
         }
-        .checkbox-label:hover { background: var(--glass-hover); border-color: var(--c-sand); color: var(--text-main); }
+        .checkbox-label:hover { border-color: var(--c-sand); color: var(--text-main); }
         .checkbox-label input { display: none; }
         .checkbox-label:has(input:checked) {
             background: var(--safe-green); color: #ffffff; font-weight: 600;
@@ -173,7 +174,6 @@
         }
         button.main-btn:active { transform: scale(0.98); opacity: 0.9; }
 
-        /* --- 歷史紀錄卡片化選取版面 --- */
         .history-item { 
             display: flex; flex-direction: column; gap: 10px;
             padding: 14px; margin-bottom: 10px;
@@ -185,7 +185,6 @@
             box-shadow: 0 2px 6px rgba(0,0,0,0.02);
         }
         .history-item:hover { border-color: var(--c-sand); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        
         .history-item.selected {
             background: rgba(122, 152, 154, 0.08);
             border-color: var(--primary-color);
@@ -203,7 +202,6 @@
 
         .history-actions { display: flex; gap: 8px; }
         .text-btn { background: var(--text-btn-bg); border: 1px solid rgba(193, 174, 141, 0.3); border-radius: 6px; padding: 5px 10px; font-size: 0.8rem; cursor: pointer; color: var(--text-muted); transition: 0.2s; font-weight: 500; }
-        .text-btn:hover { background: var(--glass-hover); }
         .text-btn.edit { color: var(--primary-color); border-color: rgba(122, 152, 154, 0.3); background: rgba(122, 152, 154, 0.05); }
         .text-btn.delete { color: var(--danger-red); border-color: rgba(198, 112, 82, 0.3); background: rgba(198, 112, 82, 0.05); }
         .tag { font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; margin-left: 8px; font-weight: 600; }
@@ -221,8 +219,9 @@
         
         .highlight-danger { color: var(--danger-red); font-weight: 700; font-size: 1.1em; }
 
+        /* 課表放大效果 - 使用實體背景 var(--solid-bg) */
         .mini-schedule-wrapper { position: relative; cursor: zoom-in; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.3s ease; transform-origin: top right; z-index: 10; }
-        .mini-schedule-wrapper:hover { transform: scale(2.2) translateX(-10px); z-index: 100; background: var(--glass-bg); box-shadow: -10px 10px 40px rgba(0,0,0,0.15); cursor: default; }
+        .mini-schedule-wrapper:hover { transform: scale(2.2) translateX(-10px); z-index: 100; background: var(--solid-bg); box-shadow: -10px 10px 40px rgba(0,0,0,0.25); cursor: default; }
         .schedule-table { width: 100%; border-collapse: collapse; text-align: center; font-size: 0.65rem; color: var(--text-main); }
         .schedule-table th, .schedule-table td { border: 1px solid var(--glass-border); padding: 3px 1px; }
         .schedule-table th { color: var(--c-slate); font-weight: 600; background: rgba(122, 152, 154, 0.1); }
@@ -239,26 +238,41 @@
         .progress-track { background: var(--progress-track-bg); border-radius: 6px; height: 6px; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); }
         .progress-fill { height: 100%; border-radius: 6px; transition: width 0.5s ease-out, background-color 0.5s ease; }
 
+        /* --- 手機版排版大升級 --- */
         @media (max-width: 900px) {
-            body { height: auto; overflow: auto; padding: 10px; }
-            .dashboard-layout { flex-direction: column; height: auto; }
-            .col-left, .col-right { width: 100%; }
+            body { 
+                height: auto; 
+                overflow: auto; 
+                padding: 10px; 
+                padding-top: 55px; /* 留出空間給右上角的切換按鈕 */
+            }
+            .dashboard-layout { flex-direction: column; height: auto; gap: 20px; }
+            .col-left, .col-right, .col-main { width: 100%; min-width: 100%; }
             .scrollable-content { overflow-y: visible; max-height: none; }
-            .mini-schedule-wrapper:hover { transform: scale(1); box-shadow: none; cursor: default; }
+            .mini-schedule-wrapper:hover { transform: scale(1); box-shadow: none; cursor: default; background: var(--glass-bg); }
             .override-history { max-height: none; }
-            .mode-toggle { top: 10px; right: 10px; padding: 6px 10px; font-size: 0.75rem; }
+            
+            .mode-toggle { top: 10px; right: 10px; padding: 8px 12px; font-size: 0.85rem; }
+            .time-clock { font-size: 2.2rem; }
+            
+            /* 節次選擇改為雙欄網格，加大點擊區域 */
+            .checkbox-group { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+            .checkbox-label { padding: 12px 10px; font-size: 1rem; }
+            .checkbox-group .checkbox-label:last-child { grid-column: span 2; } /* 第7節橫跨兩欄 */
+
+            /* 歷史紀錄卡片重排 */
+            .history-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .history-actions { width: 100%; justify-content: flex-end; border-top: 1px solid var(--glass-border); padding-top: 8px; margin-top: 4px; }
         }
     </style>
 </head>
-<body>
-
-    <button class="mode-toggle" id="modeToggle">MODE</button>
+<body class="dark-mode"> <button class="mode-toggle" id="modeToggle">MODE</button>
 
     <div class="dashboard-layout">
         
         <div class="col-left">
             <div class="glass-card time-block">
-                <div class="version-tag">V13.0</div>
+                <div class="version-tag">V14.0</div>
                 <div class="time-clock" id="realTimeClock">00:00:00</div>
                 <div class="time-date" id="realTimeDate">載入日期中...</div>
             </div>
@@ -352,14 +366,17 @@
     </div>
 
     <script>
-        // --- 日夜模式切換邏輯 V13.0 ---
+        // --- 日夜模式切換邏輯 V14.0 ---
         const toggleBtn = document.getElementById('modeToggle');
         const bodyObj = document.body;
 
-        // 讀取LocalStorage暫存設定
-        const currentTheme = localStorage.getItem('theme') || 'light';
-        if (currentTheme === 'dark') {
-            bodyObj.classList.add('dark-mode');
+        // 讀取暫存設定，預設改為 'dark'
+        const currentTheme = localStorage.getItem('theme') || 'dark';
+        if (currentTheme === 'light') {
+            bodyObj.classList.remove('dark-mode');
+        } else {
+            // 如果是 dark 或 null(初次進入)，確保加上 dark-mode
+            bodyObj.classList.add('dark-mode'); 
         }
 
         toggleBtn.addEventListener('click', () => {
@@ -368,8 +385,7 @@
             if (bodyObj.classList.contains('dark-mode')) {
                 theme = 'dark';
             }
-            localStorage.setItem('theme', theme); // 儲存使用者設定
-            // 重新填色圓餅圖，因為軌道顏色變了
+            localStorage.setItem('theme', theme);
             updateChartAndStats(getUserLeaves()); 
         });
 
@@ -515,7 +531,6 @@
 
         function animatePieChart(startPct, endPct, total) {
             const chart = document.getElementById('pieChart');
-            // 讀取目前的軌道顏色，確保日夜切換後基底色正確
             const trackColor = getComputedStyle(document.documentElement).getPropertyValue('--progress-track-bg');
             if (total === 0) {
                 chart.style.background = `conic-gradient(${trackColor} 0% 100%)`;
