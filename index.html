@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>學期缺曠管理系統</title>
+    <title>學期缺曠管理系統 V8.0</title>
     <style>
         :root {
             --bg-gradient: linear-gradient(135deg, #121212 0%, #000000 100%);
@@ -36,12 +36,17 @@
             margin-top: 0; 
             font-weight: 500; 
             font-size: 1rem; 
-            border-bottom: 1px solid var(--glass-border); 
-            padding-bottom: 8px; 
-            margin-bottom: 12px; 
             letter-spacing: 1px; 
             color: var(--text-muted);
         }
+
+        /* 為了讓標題列能放按鈕，調整了原有的 h2 底線設計 */
+        .section-header {
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 8px; margin-bottom: 12px;
+        }
+        .section-header h2 { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
 
         .glass-card {
             background: var(--glass-bg);
@@ -52,6 +57,7 @@
             padding: 15px;
             display: flex;
             flex-direction: column;
+            position: relative;
         }
 
         .dashboard-layout {
@@ -73,6 +79,12 @@
         .time-block { text-align: center; justify-content: center; padding: 25px 15px; }
         .time-clock { font-size: 3rem; font-weight: 700; letter-spacing: 2px; margin-bottom: 5px; font-variant-numeric: tabular-nums; }
         .time-date { font-size: 0.9rem; color: var(--text-muted); letter-spacing: 1px; }
+        
+        /* 版本號標籤 */
+        .version-tag {
+            position: absolute; top: 12px; right: 12px;
+            font-size: 0.75rem; color: var(--glass-border); font-weight: bold;
+        }
 
         .form-row { display: flex; gap: 10px; margin-bottom: 12px; }
         .form-group { flex: 1; }
@@ -85,12 +97,8 @@
         }
         input[type="date"]:focus, select:focus { border-color: var(--apple-blue); }
 
-        /* --- 橫向大按鈕與綠色選取狀態設計 --- */
         .select-all-wrapper { margin-bottom: 10px; }
-        .checkbox-group { 
-            display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; 
-            flex-grow: 1; justify-content: stretch; /* 填滿垂直空白 */
-        }
+        .checkbox-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; flex-grow: 1; justify-content: stretch; }
         .checkbox-label {
             display: flex; align-items: center; justify-content: center;
             background: rgba(255, 255, 255, 0.03); padding: 12px; border-radius: 8px;
@@ -98,15 +106,10 @@
             transition: all 0.2s ease; flex-grow: 1; letter-spacing: 1px;
         }
         .checkbox-label:hover { background: var(--glass-hover); }
-        .checkbox-label input { display: none; } /* 隱藏原生打勾方塊 */
-        
-        /* 被選取時變成實心綠色 */
+        .checkbox-label input { display: none; }
         .checkbox-label:has(input:checked) {
-            background: var(--safe-green);
-            color: #121212;
-            font-weight: 600;
-            border-color: var(--safe-green);
-            box-shadow: 0 0 12px rgba(48, 209, 88, 0.2);
+            background: var(--safe-green); color: #121212; font-weight: 600;
+            border-color: var(--safe-green); box-shadow: 0 0 12px rgba(48, 209, 88, 0.2);
         }
 
         button.main-btn {
@@ -115,17 +118,21 @@
         }
         button.main-btn:active { transform: scale(0.98); opacity: 0.8; }
 
-        /* --- 人性化歷史紀錄版面 --- */
+        /* --- 歷史紀錄版面 (含核取方塊) --- */
         .history-item { 
-            display: flex; flex-direction: column; gap: 12px; 
+            display: flex; align-items: flex-start; gap: 12px;
             padding: 16px 0; border-bottom: 1px solid var(--glass-border); 
         }
         .history-item:last-child { border-bottom: none; }
+        
+        .history-checkbox-wrapper { padding-top: 2px; }
+        .history-cb { transform: scale(1.3); cursor: pointer; accent-color: var(--danger-red); }
+
+        .history-content-wrapper { flex: 1; display: flex; flex-direction: column; gap: 12px; }
         .history-header { display: flex; justify-content: space-between; align-items: center; }
         .history-title { font-size: 1.05rem; font-weight: 500; display: flex; align-items: center; }
         .history-periods { display: flex; flex-wrap: wrap; gap: 8px; }
         
-        /* 節次標籤 */
         .period-badge { 
             background: rgba(255, 255, 255, 0.08); border: 1px solid var(--glass-border); 
             padding: 6px 14px; border-radius: 6px; font-size: 0.9rem; color: var(--text-main); 
@@ -137,6 +144,20 @@
         .text-btn.edit { color: #82c0ff; }
         .text-btn.delete { color: #ff918c; }
         .tag { font-size: 0.8rem; padding: 2px 6px; border-radius: 4px; margin-left: 10px; font-weight: normal; }
+
+        /* 批次操作工具列 */
+        .batch-actions { display: flex; align-items: center; gap: 12px; }
+        .batch-actions label { font-size: 0.85rem; display: flex; align-items: center; gap: 4px; cursor: pointer; color: var(--text-main); }
+        .batch-actions input[type="checkbox"] { transform: scale(1.1); accent-color: var(--apple-blue); }
+
+        /* 新手引導畫面 */
+        .empty-state {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100%; text-align: center; color: var(--text-muted); padding: 0 30px;
+        }
+        .empty-state-title { font-size: 1.5rem; font-weight: 500; color: rgba(255,255,255,0.8); margin-bottom: 15px; }
+        .empty-state-desc { font-size: 1rem; line-height: 1.6; background: rgba(255,255,255,0.03); padding: 20px; border-radius: 12px; border: 1px dashed var(--glass-border); text-align: left; }
+        .empty-state-desc strong { color: var(--danger-red); }
 
         .mini-schedule-wrapper { position: relative; cursor: zoom-in; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.3s ease; transform-origin: top right; z-index: 10; }
         .mini-schedule-wrapper:hover { transform: scale(2.2) translateX(-10px); z-index: 100; background: rgba(20, 20, 22, 0.98); box-shadow: -10px 10px 40px rgba(0,0,0,0.9); cursor: default; }
@@ -171,12 +192,15 @@
         
         <div class="col-left">
             <div class="glass-card time-block">
+                <div class="version-tag">V8.0</div>
                 <div class="time-clock" id="realTimeClock">00:00:00</div>
                 <div class="time-date" id="realTimeDate">載入日期中...</div>
             </div>
 
             <div class="glass-card" style="flex-grow: 1;">
-                <h2 id="formTitle">登記請假紀錄</h2>
+                <div class="section-header">
+                    <h2 id="formTitle">登記請假紀錄</h2>
+                </div>
                 <div class="form-row">
                     <div class="form-group"><label>日期</label><input type="date" id="leaveDate" min="2026-01-21" max="2026-06-30" required></div>
                     <div class="form-group"><label>假別</label><select id="leaveType"><option value="事假">事假</option><option value="病假">病假</option></select></div>
@@ -207,14 +231,22 @@
 
         <div class="col-main">
             <div class="glass-card" style="height: 100%;">
-                <h2>登記歷史</h2>
+                <div class="section-header">
+                    <h2>登記歷史</h2>
+                    <div class="batch-actions" id="batchActions" style="display: none;">
+                        <label>
+                            <input type="checkbox" id="selectAllHistory" onchange="toggleAllHistory(this)"> <span>全選</span>
+                        </label>
+                        <button class="text-btn delete" onclick="deleteSelectedHistory()">刪除選取</button>
+                    </div>
+                </div>
                 <div class="scrollable-content" id="historyContainer"></div>
             </div>
         </div>
 
         <div class="col-right">
             <div class="glass-card mini-schedule-wrapper">
-                <h2>當前課表</h2>
+                <div class="section-header"><h2>當前課表</h2></div>
                 <table class="schedule-table">
                     <tr><th>節</th><th>一</th><th>二</th><th>三</th><th>四</th><th>五</th></tr>
                     <tr><td>1</td><td>物理</td><td>數學</td><td>科技</td><td>數學</td><td>國文</td></tr>
@@ -228,7 +260,7 @@
             </div>
 
             <div class="glass-card">
-                <h2>假別比例</h2>
+                <div class="section-header"><h2>假別比例</h2></div>
                 <div class="chart-container">
                     <div class="pie-chart" id="pieChart"></div>
                     <div class="chart-legend">
@@ -239,7 +271,7 @@
             </div>
 
             <div class="glass-card" style="flex-grow: 1; overflow: hidden;">
-                <h2>戰情分析</h2>
+                <div class="section-header"><h2>戰情分析</h2></div>
                 <div class="scrollable-content" id="subjectsContainer"></div>
             </div>
         </div>
@@ -452,47 +484,64 @@
         function renderHistory() {
             const userLeaves = getUserLeaves();
             const container = document.getElementById('historyContainer');
+            const batchActions = document.getElementById('batchActions');
             container.innerHTML = '';
 
             if (userLeaves.length === 0) {
-                container.innerHTML = '<div style="text-align:center; color: var(--text-muted); padding: 20px; font-size: 0.9rem;">目前無資料</div>';
+                batchActions.style.display = 'none';
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-title">目前無資料</div>
+                        <div class="empty-state-desc">
+                            💡 <strong>你知道嗎？</strong><br><br>
+                            根據高中規定，當單一科目缺課達該學期授課總節數的 <strong>1/3</strong>，該科成績將以零分計算。<br><br>
+                            請由左側開始登記你的請假紀錄，右側戰情分析將會自動為您計算每科的安全額度！
+                        </div>
+                    </div>
+                `;
                 return;
             }
+
+            batchActions.style.display = 'flex';
+            document.getElementById('selectAllHistory').checked = false;
 
             userLeaves.forEach((leave, index) => {
                 const sortedPeriods = [...leave.periods].sort((a, b) => parseInt(a) - parseInt(b));
                 const typeText = leave.type || '事假';
                 const typeColor = typeText === '事假' ? 'var(--personal-color)' : 'var(--sick-color)';
                 const borderStyle = `border: 1px solid ${typeColor}; color: ${typeColor};`;
-
-                // 產生節次的獨立標籤
                 const periodsHtml = sortedPeriods.map(p => `<span class="period-badge">第 ${p} 節</span>`).join('');
 
                 container.innerHTML += `
                     <div class="history-item">
-                        <div class="history-header">
-                            <div class="history-title">
-                                ${leave.date} <span class="tag" style="${borderStyle}">${typeText}</span>
-                            </div>
-                            <div class="history-actions">
-                                <button class="text-btn edit" onclick="editLeave(${index})">修改</button>
-                                <button class="text-btn delete" onclick="deleteLeave(${index})">刪除</button>
-                            </div>
+                        <div class="history-checkbox-wrapper">
+                            <input type="checkbox" class="history-cb" value="${index}" onchange="checkHistorySelection()">
                         </div>
-                        <div class="history-periods">
-                            ${periodsHtml}
+                        <div class="history-content-wrapper">
+                            <div class="history-header">
+                                <div class="history-title">
+                                    ${leave.date} <span class="tag" style="${borderStyle}">${typeText}</span>
+                                </div>
+                                <div class="history-actions">
+                                    <button class="text-btn edit" onclick="editLeave(${index})">修改</button>
+                                    <button class="text-btn delete" onclick="deleteLeave(${index})">刪除</button>
+                                </div>
+                            </div>
+                            <div class="history-periods">
+                                ${periodsHtml}
+                            </div>
                         </div>
                     </div>
                 `;
             });
         }
 
+        // 左側登記區塊的事件
         function toggleAllPeriods(checkbox) {
             const cbs = document.querySelectorAll('.period-cb');
             cbs.forEach(cb => cb.checked = checkbox.checked);
         }
 
-        // 當單獨點擊節次時，檢查是否要自動勾選或取消「全天選取」
         document.addEventListener('change', function(e) {
             if(e.target && e.target.classList.contains('period-cb')) {
                 const allCbs = document.querySelectorAll('.period-cb');
@@ -500,6 +549,35 @@
                 document.getElementById('selectAll').checked = (allCbs.length === checkedCbs.length);
             }
         });
+
+        // 歷史紀錄區塊的批次事件
+        function toggleAllHistory(checkbox) {
+            const cbs = document.querySelectorAll('.history-cb');
+            cbs.forEach(cb => cb.checked = checkbox.checked);
+        }
+
+        function checkHistorySelection() {
+            const allCbs = document.querySelectorAll('.history-cb');
+            const checkedCbs = document.querySelectorAll('.history-cb:checked');
+            document.getElementById('selectAllHistory').checked = (allCbs.length > 0 && allCbs.length === checkedCbs.length);
+        }
+
+        function deleteSelectedHistory() {
+            const checkedCbs = document.querySelectorAll('.history-cb:checked');
+            if (checkedCbs.length === 0) return alert("請先選取要刪除的紀錄");
+            if (!confirm(`確定要刪除選取的 ${checkedCbs.length} 筆紀錄嗎？`)) return;
+
+            let userLeaves = getUserLeaves();
+            // 收集要刪除的 index，並由大到小排序，避免刪除過程中陣列錯位
+            const indicesToDelete = Array.from(checkedCbs).map(cb => parseInt(cb.value, 10)).sort((a, b) => b - a);
+            
+            indicesToDelete.forEach(index => {
+                userLeaves.splice(index, 1);
+            });
+
+            saveUserLeaves(userLeaves);
+            updateAll();
+        }
 
         function submitLeave() {
             const dateInput = document.getElementById('leaveDate').value;
