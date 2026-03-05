@@ -6,12 +6,13 @@
     <title>學期缺曠管理系統</title>
     <style>
         :root {
-            --bg-gradient: linear-gradient(135deg, #1c1c1e 0%, #000000 100%);
+            --bg-gradient: linear-gradient(135deg, #151516 0%, #000000 100%);
             --glass-bg: rgba(255, 255, 255, 0.08);
+            --glass-hover: rgba(255, 255, 255, 0.12);
             --glass-border: rgba(255, 255, 255, 0.15);
             --text-main: #ffffff;
-            --text-muted: #ebebf599;
-            --safe-green: #32d74b;
+            --text-muted: #a1a1a6;
+            --safe-green: #30d158;
             --warn-yellow: #ffd60a;
             --danger-red: #ff453a;
             --apple-blue: #0a84ff;
@@ -28,33 +29,34 @@
             padding: 20px;
             height: 100vh;
             box-sizing: border-box;
-            overflow: hidden; /* 桌面版禁止整頁滾動 */
+            overflow: hidden;
         }
 
-        h2, h3 { margin-top: 0; font-weight: 600; font-size: 1.2rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 10px; margin-bottom: 15px; }
+        h2, h3 { margin-top: 0; font-weight: 600; font-size: 1.1rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 10px; margin-bottom: 15px; letter-spacing: 0.5px; }
 
-        /* 儀表板網格排版 (桌面版) */
+        /* 即時時鐘 */
+        .clock-container {
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: var(--text-main);
+            margin-bottom: 15px;
+            padding-left: 5px;
+            letter-spacing: 1px;
+        }
+
+        /* 儀表板網格排版 */
         .dashboard-layout {
             display: grid;
             grid-template-columns: 2fr 1fr;
             gap: 20px;
-            height: calc(100vh - 40px);
+            height: calc(100vh - 65px);
         }
 
-        .left-column {
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
+        .left-column { display: flex; flex-direction: column; overflow: hidden; }
+        .right-column { display: flex; flex-direction: column; gap: 20px; overflow: hidden; }
+        .top-right-row { display: flex; gap: 20px; flex-shrink: 0; }
 
-        .right-column {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            overflow: hidden;
-        }
-
-        /* 玻璃擬態卡片與自訂滾動條 */
+        /* 玻璃擬態卡片 */
         .glass-card {
             background: var(--glass-bg);
             backdrop-filter: blur(20px);
@@ -62,17 +64,12 @@
             border: 1px solid var(--glass-border);
             border-radius: var(--card-radius);
             padding: 20px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.2);
             display: flex;
             flex-direction: column;
         }
 
-        .scrollable-content {
-            overflow-y: auto;
-            flex-grow: 1;
-            padding-right: 10px;
-        }
-
+        .scrollable-content { overflow-y: auto; flex-grow: 1; padding-right: 10px; }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
@@ -85,23 +82,31 @@
         .progress-fill { height: 100%; border-radius: 10px; transition: width 0.5s ease, background-color 0.5s ease; }
 
         /* 圓餅圖區塊 */
-        .chart-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 20px;
-            padding: 10px 0;
+        .chart-container { display: flex; flex-direction: column; align-items: center; gap: 15px; }
+        .pie-chart { width: 80px; height: 80px; border-radius: 50%; background: conic-gradient(var(--text-muted) 0% 100%); transition: background 0.5s; }
+        .chart-legend { display: flex; flex-direction: row; gap: 15px; font-size: 0.85rem; }
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .legend-color { width: 10px; height: 10px; border-radius: 3px; }
+
+        /* 小課表 (懸浮放大特效) */
+        .mini-schedule-wrapper {
+            position: relative;
+            cursor: zoom-in;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.3s ease;
+            transform-origin: top right;
+            z-index: 10;
         }
-        .pie-chart {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            background: conic-gradient(var(--text-muted) 0% 100%);
-            transition: background 0.5s;
+        .mini-schedule-wrapper:hover {
+            transform: scale(2.2);
+            z-index: 100;
+            background: rgba(28, 28, 30, 0.95);
+            box-shadow: -10px 10px 40px rgba(0,0,0,0.8);
+            cursor: default;
         }
-        .chart-legend { display: flex; flex-direction: column; gap: 8px; font-size: 0.9rem; }
-        .legend-item { display: flex; align-items: center; gap: 8px; }
-        .legend-color { width: 12px; height: 12px; border-radius: 3px; }
+        .schedule-table { width: 100%; border-collapse: collapse; text-align: center; font-size: 0.7rem; color: var(--text-main); }
+        .schedule-table th, .schedule-table td { border: 1px solid var(--glass-border); padding: 4px 2px; }
+        .schedule-table th { color: var(--text-muted); font-weight: normal; }
+        .hover-hint { text-align: center; font-size: 0.7rem; color: var(--text-muted); margin-top: 8px; }
 
         /* 表單元素 */
         .form-row { display: flex; gap: 10px; margin-bottom: 15px; }
@@ -109,119 +114,101 @@
         .form-group label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 5px; }
         
         input[type="date"], select {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid var(--glass-border);
-            color: white;
-            padding: 10px;
-            border-radius: 8px;
-            width: 100%;
-            box-sizing: border-box;
-            font-size: 0.95rem;
-            color-scheme: dark;
+            background: rgba(255, 255, 255, 0.1); border: 1px solid var(--glass-border);
+            color: white; padding: 10px; border-radius: 8px; width: 100%;
+            box-sizing: border-box; font-size: 0.95rem; color-scheme: dark;
+            outline: none; transition: 0.2s;
         }
+        input[type="date"]:focus, select:focus { border-color: var(--apple-blue); }
 
-        .checkbox-group {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
-            gap: 8px;
-            margin-bottom: 15px;
-        }
+        .checkbox-group { display: grid; grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)); gap: 8px; margin-bottom: 15px; }
         .checkbox-label {
             display: flex; align-items: center; justify-content: center;
-            background: rgba(255, 255, 255, 0.05);
-            padding: 8px 5px; border-radius: 8px; cursor: pointer;
-            border: 1px solid transparent; font-size: 0.85rem; transition: 0.2s;
+            background: rgba(255, 255, 255, 0.05); padding: 8px 5px; border-radius: 8px;
+            cursor: pointer; border: 1px solid transparent; font-size: 0.85rem; transition: 0.2s;
         }
-        .checkbox-label:active { background: rgba(255, 255, 255, 0.1); }
+        .checkbox-label:hover { background: var(--glass-hover); }
         .checkbox-label input { margin-right: 4px; }
-        
-        .select-all-wrapper .checkbox-label { background: rgba(10, 132, 255, 0.15); width: 100%; margin-bottom: 10px;}
+        .select-all-wrapper .checkbox-label { background: rgba(10, 132, 255, 0.15); width: 100%; margin-bottom: 10px; }
 
         button.main-btn {
             background: var(--apple-blue); color: white; border: none; padding: 12px;
-            border-radius: 8px; width: 100%; font-size: 1rem; font-weight: 600; cursor: pointer;
+            border-radius: 8px; width: 100%; font-size: 1rem; font-weight: 600; cursor: pointer; transition: 0.2s;
         }
         button.main-btn:active { transform: scale(0.98); opacity: 0.8; }
 
         /* 歷史紀錄 */
-        .history-item {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 10px 0; border-bottom: 1px solid var(--glass-border);
-        }
+        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--glass-border); }
         .history-item:last-child { border-bottom: none; }
         .history-info strong { font-size: 0.95rem; display: block; margin-bottom: 4px; }
         .history-info span { font-size: 0.8rem; color: var(--text-muted); }
         .history-actions { display: flex; gap: 8px; }
-        .text-btn {
-            background: rgba(255,255,255,0.1); border: none; border-radius: 6px;
-            padding: 5px 10px; font-size: 0.8rem; cursor: pointer; color: white;
-        }
+        .text-btn { background: rgba(255,255,255,0.1); border: none; border-radius: 6px; padding: 5px 10px; font-size: 0.8rem; cursor: pointer; color: white; transition: 0.2s; }
+        .text-btn:hover { background: rgba(255,255,255,0.2); }
         .text-btn.edit { background: rgba(10, 132, 255, 0.2); color: #82c0ff; }
         .text-btn.delete { background: rgba(255, 69, 58, 0.2); color: #ff918c; }
 
-        /* 手機版響應式設定 */
         @media (max-width: 768px) {
             body { height: auto; overflow: auto; }
             .dashboard-layout { grid-template-columns: 1fr; height: auto; display: flex; flex-direction: column; }
             .left-column, .right-column { overflow: visible; }
+            .top-right-row { flex-direction: column; }
             .glass-card { flex-grow: 0; }
             .scrollable-content { overflow-y: visible; max-height: none; }
+            .mini-schedule-wrapper:hover { transform: scale(1); box-shadow: none; cursor: default; } /* 手機版不放大 */
+            .hover-hint { display: none; }
         }
     </style>
 </head>
 <body>
 
+    <div class="clock-container" id="realTimeClock">讀取時間中...</div>
+
     <div class="dashboard-layout">
         <div class="left-column">
             <div class="glass-card" style="height: 100%;">
                 <h2>即時戰情分析</h2>
-                <div class="scrollable-content" id="subjectsContainer">
-                    </div>
+                <div class="scrollable-content" id="subjectsContainer"></div>
             </div>
         </div>
 
         <div class="right-column">
             
-            <div class="glass-card" style="flex-shrink: 0;">
-                <h2>假別統計比例</h2>
-                <div class="chart-container">
-                    <div class="pie-chart" id="pieChart"></div>
-                    <div class="chart-legend">
-                        <div class="legend-item">
-                            <div class="legend-color" style="background: var(--personal-color);"></div>
-                            <span id="personalCount">事假: 0 節</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color" style="background: var(--sick-color);"></div>
-                            <span id="sickCount">病假: 0 節</span>
+            <div class="top-right-row">
+                <div class="glass-card" style="flex: 1;">
+                    <h2>假別比例</h2>
+                    <div class="chart-container">
+                        <div class="pie-chart" id="pieChart"></div>
+                        <div class="chart-legend">
+                            <div class="legend-item"><div class="legend-color" style="background: var(--personal-color);"></div><span id="personalCount">事假: 0</span></div>
+                            <div class="legend-item"><div class="legend-color" style="background: var(--sick-color);"></div><span id="sickCount">病假: 0</span></div>
                         </div>
                     </div>
+                </div>
+
+                <div class="glass-card mini-schedule-wrapper" style="flex: 1;">
+                    <h2>當前課表 (新)</h2>
+                    <table class="schedule-table">
+                        <tr><th>節</th><th>一</th><th>二</th><th>三</th><th>四</th><th>五</th></tr>
+                        <tr><td>1</td><td>物理</td><td>數學</td><td>科技</td><td>數學</td><td>國文</td></tr>
+                        <tr><td>2</td><td>健護</td><td>音樂</td><td>科技</td><td>化學</td><td>化學</td></tr>
+                        <tr><td>3</td><td>化學</td><td>物理</td><td>數學</td><td>物理</td><td>輔導</td></tr>
+                        <tr><td>4</td><td>班會</td><td>英文</td><td>化學</td><td>國文</td><td>輔導</td></tr>
+                        <tr><td>5</td><td>體育</td><td>國文</td><td>物理</td><td>深廣</td><td>班會</td></tr>
+                        <tr><td>6</td><td>音樂</td><td>國文</td><td>體育</td><td>深廣</td><td>國防</td></tr>
+                        <tr><td>7</td><td>英文</td><td>英文</td><td>社團</td><td>英文</td><td>數學</td></tr>
+                    </table>
+                    <div class="hover-hint">滑鼠移入放大檢視</div>
                 </div>
             </div>
 
             <div class="glass-card" style="flex-shrink: 0;">
                 <h2 id="formTitle">登記請假紀錄</h2>
-                
                 <div class="form-row">
-                    <div class="form-group">
-                        <label>日期</label>
-                        <input type="date" id="leaveDate" min="2026-01-21" max="2026-06-30" required>
-                    </div>
-                    <div class="form-group">
-                        <label>假別</label>
-                        <select id="leaveType">
-                            <option value="事假">事假</option>
-                            <option value="病假">病假</option>
-                        </select>
-                    </div>
+                    <div class="form-group"><label>日期</label><input type="date" id="leaveDate" min="2026-01-21" max="2026-06-30" required></div>
+                    <div class="form-group"><label>假別</label><select id="leaveType"><option value="事假">事假</option><option value="病假">病假</option></select></div>
                 </div>
-
-                <div class="select-all-wrapper">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="selectAll" onchange="toggleAllPeriods(this)"> 全選 (整天)
-                    </label>
-                </div>
-                
+                <div class="select-all-wrapper"><label class="checkbox-label"><input type="checkbox" id="selectAll" onchange="toggleAllPeriods(this)"> 全選 (整天)</label></div>
                 <div class="checkbox-group" id="periodCheckboxes">
                     <label class="checkbox-label"><input type="checkbox" class="period-cb" value="1"> 第 1 節</label>
                     <label class="checkbox-label"><input type="checkbox" class="period-cb" value="2"> 第 2 節</label>
@@ -231,25 +218,37 @@
                     <label class="checkbox-label"><input type="checkbox" class="period-cb" value="6"> 第 6 節</label>
                     <label class="checkbox-label"><input type="checkbox" class="period-cb" value="7"> 第 7 節</label>
                 </div>
-
                 <button class="main-btn" id="submitBtn" onclick="submitLeave()">送出資料</button>
                 <button class="main-btn" id="cancelBtn" onclick="cancelEdit()" style="display:none; margin-top:10px; background:rgba(255,255,255,0.2);">取消修改</button>
             </div>
 
             <div class="glass-card" style="flex-grow: 1; overflow: hidden;">
                 <h2>歷史紀錄</h2>
-                <div class="scrollable-content" id="historyContainer">
-                    </div>
+                <div class="scrollable-content" id="historyContainer"></div>
             </div>
 
         </div>
     </div>
 
     <script>
+        // --- 時鐘邏輯 ---
+        function updateClock() {
+            const now = new Date();
+            const y = now.getFullYear();
+            const m = now.getMonth() + 1;
+            const d = now.getDate();
+            const days = ['日', '一', '二', '三', '四', '五', '六'];
+            const dayStr = days[now.getDay()];
+            const timeStr = now.toLocaleTimeString('zh-TW', { hour12: false });
+            document.getElementById('realTimeClock').innerText = `${y}年${m}月${d}日 星期${dayStr} ${timeStr}`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // --- 核心資料 ---
         const schoolData = {
             "semester": {
-                "startDate": "2026-01-21",
-                "endDate": "2026-06-30",
+                "startDate": "2026-01-21", "endDate": "2026-06-30",
                 "holidays": ["2026-02-27", "2026-04-03", "2026-04-06", "2026-05-01", "2026-06-19"],
                 "oldScheduleDates": ["2026-01-21", "2026-01-22", "2026-01-23", "2026-02-23", "2026-02-24", "2026-02-25", "2026-02-26"]
             },
@@ -279,11 +278,20 @@
         let baseSubjectStats = {};
         let editingIndex = -1;
 
+        // 安全的日期格式化工具 (解決時區 Bug 的核心)
+        function formatLocalDate(dateObj) {
+            const y = dateObj.getFullYear();
+            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const d = String(dateObj.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
         function generateCalendar() {
             const { semester, schedules, overrides } = schoolData;
             const startDate = new Date(semester.startDate);
             const endDate = new Date(semester.endDate);
             const daysMap = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            
             const overrideMap = {};
             overrides.forEach(ov => overrideMap[`${ov.date}_${ov.period}`] = ov.newSubject);
 
@@ -291,7 +299,7 @@
             dailyScheduleMap = {};
 
             for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-                const dateStr = d.toLocaleDateString('en-CA'); 
+                const dateStr = formatLocalDate(d); 
                 const dayOfWeek = d.getDay();
                 if (dayOfWeek === 0 || dayOfWeek === 6 || semester.holidays.includes(dateStr)) continue;
 
@@ -307,7 +315,7 @@
                     if (overrideMap[overrideKey]) subject = overrideMap[overrideKey];
 
                     if (subject) {
-                        dailyScheduleMap[dateStr][period] = subject;
+                        dailyScheduleMap[dateStr][period.toString()] = subject;
                         if (!baseSubjectStats[subject]) {
                             baseSubjectStats[subject] = { totalPeriods: 0, leavesTaken: 0 };
                         }
@@ -317,35 +325,27 @@
             }
         }
 
-        function getUserLeaves() {
-            return JSON.parse(localStorage.getItem('myLeavesV2')) || [];
-        }
-
+        // 使用全新的 V4 Key，避免吃到舊的錯誤資料格式
+        function getUserLeaves() { return JSON.parse(localStorage.getItem('myLeavesV4')) || []; }
         function saveUserLeaves(leaves) {
             leaves.sort((a, b) => new Date(b.date) - new Date(a.date));
-            localStorage.setItem('myLeavesV2', JSON.stringify(leaves));
+            localStorage.setItem('myLeavesV4', JSON.stringify(leaves));
         }
 
         function updateChartAndStats(userLeaves) {
-            let personalCount = 0;
-            let sickCount = 0;
-
+            let personalCount = 0; let sickCount = 0;
             userLeaves.forEach(leave => {
-                // 如果舊資料沒有 type 屬性，預設歸類為事假
                 const type = leave.type || '事假';
                 if (type === '事假') personalCount += leave.periods.length;
                 else if (type === '病假') sickCount += leave.periods.length;
             });
-
-            document.getElementById('personalCount').innerText = `事假: ${personalCount} 節`;
-            document.getElementById('sickCount').innerText = `病假: ${sickCount} 節`;
+            document.getElementById('personalCount').innerText = `事假: ${personalCount}`;
+            document.getElementById('sickCount').innerText = `病假: ${sickCount}`;
 
             const total = personalCount + sickCount;
             const chart = document.getElementById('pieChart');
-            
-            if (total === 0) {
-                chart.style.background = 'var(--glass-border)';
-            } else {
+            if (total === 0) chart.style.background = 'var(--glass-border)';
+            else {
                 const personalPct = (personalCount / total) * 100;
                 chart.style.background = `conic-gradient(var(--personal-color) 0% ${personalPct}%, var(--sick-color) ${personalPct}% 100%)`;
             }
@@ -360,7 +360,7 @@
                 const daySchedule = dailyScheduleMap[leave.date];
                 if (daySchedule) {
                     leave.periods.forEach(p => {
-                        const subject = daySchedule[p];
+                        const subject = daySchedule[p.toString()]; // 確保對應為字串
                         if (subject && currentStats[subject]) {
                             currentStats[subject].leavesTaken++;
                             totalLeavesAny++;
@@ -369,7 +369,6 @@
                 }
             });
 
-            // 將物件轉為陣列以便排序
             let statsArray = Object.keys(currentStats).map(subject => {
                 const data = currentStats[subject];
                 const threshold = Math.floor(data.totalPeriods / 3);
@@ -378,12 +377,8 @@
                 return { subject, totalPeriods: data.totalPeriods, threshold, leavesTaken: data.leavesTaken, remaining, percentUsed };
             });
 
-            // 動態排序邏輯
-            if (totalLeavesAny === 0) {
-                // 沒有請假時，總節數由大到小
-                statsArray.sort((a, b) => b.totalPeriods - a.totalPeriods);
-            } else {
-                // 有請假時，危險度由大到小 (百分比高 -> 剩餘節數少 -> 總節數多)
+            if (totalLeavesAny === 0) statsArray.sort((a, b) => b.totalPeriods - a.totalPeriods);
+            else {
                 statsArray.sort((a, b) => {
                     if (b.percentUsed !== a.percentUsed) return b.percentUsed - a.percentUsed;
                     if (a.remaining !== b.remaining) return a.remaining - b.remaining;
@@ -432,7 +427,7 @@
                 container.innerHTML += `
                     <div class="history-item">
                         <div class="history-info">
-                            <strong>${leave.date} <span style="font-size:0.8rem; color:${typeColor}; border:1px solid ${typeColor}; padding:2px 4px; border-radius:4px; margin-left:5px;">${typeText}</span></strong>
+                            <strong>${leave.date} <span style="font-size:0.75rem; color:${typeColor}; border:1px solid ${typeColor}; padding:2px 4px; border-radius:4px; margin-left:5px;">${typeText}</span></strong>
                             <span>第 ${sortedPeriods.join(', ')} 節</span>
                         </div>
                         <div class="history-actions">
@@ -454,12 +449,10 @@
             const typeInput = document.getElementById('leaveType').value;
 
             if (!dateInput) return alert("請選擇日期");
-
-            const selectedPeriods = Array.from(document.querySelectorAll('.period-cb:checked')).map(cb => parseInt(cb.value));
+            const selectedPeriods = Array.from(document.querySelectorAll('.period-cb:checked')).map(cb => parseInt(cb.value, 10));
             if (selectedPeriods.length === 0) return alert("請至少勾選一節課");
 
             let userLeaves = getUserLeaves();
-
             if (editingIndex > -1) {
                 userLeaves[editingIndex] = { date: dateInput, type: typeInput, periods: selectedPeriods };
                 editingIndex = -1;
@@ -486,13 +479,10 @@
         function editLeave(index) {
             const userLeaves = getUserLeaves();
             const leave = userLeaves[index];
-            
             document.getElementById('leaveDate').value = leave.date;
             document.getElementById('leaveType').value = leave.type || '事假';
-            
             const cbs = document.querySelectorAll('.period-cb');
-            cbs.forEach(cb => { cb.checked = leave.periods.includes(parseInt(cb.value)); });
-            
+            cbs.forEach(cb => { cb.checked = leave.periods.includes(parseInt(cb.value, 10)); });
             document.getElementById('selectAll').checked = leave.periods.length === 7;
 
             editingIndex = index;
@@ -510,7 +500,7 @@
         }
 
         function resetForm() {
-            const today = new Date().toLocaleDateString('en-CA');
+            const today = formatLocalDate(new Date());
             document.getElementById('leaveDate').value = today;
             document.getElementById('leaveType').value = '事假';
             document.getElementById('selectAll').checked = false;
@@ -526,8 +516,8 @@
         }
 
         window.onload = () => {
-            resetForm();
             generateCalendar();
+            resetForm();
             updateAll();
         };
     </script>
