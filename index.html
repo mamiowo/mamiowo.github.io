@@ -3,21 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>學期缺曠管理系統 V10.0</title>
+    <title>學期缺曠管理系統 V11.0</title>
     <style>
         :root {
-            --bg-gradient: linear-gradient(135deg, #121212 0%, #000000 100%);
-            --glass-bg: rgba(255, 255, 255, 0.05);
-            --glass-hover: rgba(255, 255, 255, 0.08);
-            --glass-border: rgba(255, 255, 255, 0.1);
-            --text-main: #ffffff;
-            --text-muted: #98989d;
-            --safe-green: #30d158;
-            --warn-yellow: #ffd60a;
-            --danger-red: #ff453a;
-            --apple-blue: #0a84ff;
-            --sick-color: #5e5ce6;
-            --personal-color: #ff9f0a;
+            /* 用戶指定的大地色系 (Morandi Palette) */
+            --c-slate: #7A989A; /* 灰藍綠：作為主色調/按鈕/選取/病假 */
+            --c-sage:  #849271; /* 鼠尾草綠：作為安全額度/已選取狀態 */
+            --c-sand:  #C1AE8D; /* 沙褐色：作為事假/次要按鈕/玻璃邊框基調 */
+            --c-ochre: #CF9546; /* 赭黃色：作為警告狀態 (快達標) */
+            --c-rust:  #C67052; /* 鐵鏽紅：作為危險狀態/刪除動作 */
+
+            /* 系統介面變數對映 */
+            --bg-gradient: linear-gradient(135deg, #222422 0%, #151615 100%); /* 改為帶有一點暖綠灰調的深底色 */
+            --glass-bg: rgba(193, 174, 141, 0.05); /* 用沙褐色調配玻璃透光 */
+            --glass-hover: rgba(193, 174, 141, 0.09);
+            --glass-border: rgba(193, 174, 141, 0.2);
+            
+            --text-main: #f4f0ea; /* 柔和的米白色，不刺眼 */
+            --text-muted: rgba(193, 174, 141, 0.75);
+            
+            --safe-green: var(--c-sage);
+            --warn-yellow: var(--c-ochre);
+            --danger-red: var(--c-rust);
+            --primary-color: var(--c-slate);
+            
+            --sick-color: var(--c-slate);
+            --personal-color: var(--c-sand);
+            
             --card-radius: 12px;
         }
 
@@ -72,11 +84,11 @@
         .scrollable-content { overflow-y: auto; flex-grow: 1; padding-right: 5px; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
+        ::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--c-sand); }
 
         .time-block { text-align: center; justify-content: center; padding: 20px 15px; flex-shrink: 0; }
-        .time-clock { font-size: 2.8rem; font-weight: 700; letter-spacing: 2px; margin-bottom: 5px; font-variant-numeric: tabular-nums; }
+        .time-clock { font-size: 2.8rem; font-weight: 700; letter-spacing: 2px; margin-bottom: 5px; font-variant-numeric: tabular-nums; color: var(--text-main); }
         .time-date { font-size: 0.85rem; color: var(--text-muted); letter-spacing: 1px; }
         
         .version-tag {
@@ -84,43 +96,43 @@
             font-size: 0.75rem; color: var(--glass-border); font-weight: bold;
         }
 
-        /* 調課歷史區塊高度設定與內部樣式 */
-        .override-history { max-height: 140px; flex-shrink: 0; padding-bottom: 5px; }
-        .override-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed rgba(255,255,255,0.05); font-size: 0.85rem; color: var(--text-muted); }
+        /* 調課歷史區塊：鎖定高度並隱藏溢出，確保內部必定滾動 */
+        .override-history { max-height: 140px; flex-shrink: 0; padding-bottom: 5px; overflow: hidden; }
+        .override-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed var(--glass-border); font-size: 0.85rem; color: var(--text-muted); }
         .override-item:last-child { border-bottom: none; }
-        .override-item strong { color: #82c0ff; font-weight: 500; }
+        .override-item strong { color: var(--c-sand); font-weight: 500; }
 
         .form-row { display: flex; gap: 10px; margin-bottom: 10px; }
         .form-group { flex: 1; }
         .form-group label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; }
         
         input[type="date"], select {
-            background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border);
-            color: white; padding: 8px; border-radius: 6px; width: 100%;
+            background: rgba(0, 0, 0, 0.2); border: 1px solid var(--glass-border);
+            color: var(--text-main); padding: 8px; border-radius: 6px; width: 100%;
             box-sizing: border-box; font-size: 0.9rem; color-scheme: dark; outline: none; transition: 0.2s;
         }
-        input[type="date"]:focus, select:focus { border-color: var(--apple-blue); }
+        input[type="date"]:focus, select:focus { border-color: var(--primary-color); }
 
         .select-all-wrapper { margin-bottom: 8px; }
         
-        /* 壓縮節數選擇按鈕的高度與間距 */
         .checkbox-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; flex-grow: 1; justify-content: stretch; }
         .checkbox-label {
             display: flex; align-items: center; justify-content: center;
-            background: rgba(255, 255, 255, 0.03); padding: 7px; border-radius: 6px;
+            background: rgba(0, 0, 0, 0.15); padding: 7px; border-radius: 6px;
             cursor: pointer; border: 1px solid var(--glass-border); font-size: 0.9rem; 
-            transition: all 0.2s ease; flex-grow: 1; letter-spacing: 1px;
+            transition: all 0.2s ease; flex-grow: 1; letter-spacing: 1px; color: var(--text-main);
         }
         .checkbox-label:hover { background: var(--glass-hover); }
         .checkbox-label input { display: none; }
         .checkbox-label:has(input:checked) {
-            background: var(--safe-green); color: #121212; font-weight: 600;
-            border-color: var(--safe-green); box-shadow: 0 0 10px rgba(48, 209, 88, 0.2);
+            background: var(--safe-green); color: #111; font-weight: 600;
+            border-color: var(--safe-green); box-shadow: 0 0 10px rgba(132, 146, 113, 0.3);
         }
 
+        /* 主按鈕套用灰藍綠色 */
         button.main-btn {
-            background: var(--apple-blue); color: white; border: none; padding: 10px;
-            border-radius: 8px; width: 100%; font-size: 0.95rem; font-weight: 500; cursor: pointer; transition: 0.2s; letter-spacing: 1px;
+            background: var(--primary-color); color: #111; border: none; padding: 10px;
+            border-radius: 8px; width: 100%; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: 0.2s; letter-spacing: 1px;
         }
         button.main-btn:active { transform: scale(0.98); opacity: 0.8; }
 
@@ -128,7 +140,7 @@
         .history-item { 
             display: flex; flex-direction: column; gap: 10px;
             padding: 14px; margin-bottom: 10px;
-            background: rgba(255, 255, 255, 0.02);
+            background: rgba(0, 0, 0, 0.15);
             border: 1px solid var(--glass-border);
             border-radius: 10px;
             cursor: pointer;
@@ -136,10 +148,11 @@
         }
         .history-item:hover { background: var(--glass-hover); }
         
+        /* 選取時套用灰藍綠的光暈 */
         .history-item.selected {
-            background: rgba(10, 132, 255, 0.15);
-            border-color: var(--apple-blue);
-            box-shadow: 0 0 15px rgba(10, 132, 255, 0.2);
+            background: rgba(122, 152, 154, 0.15);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 15px rgba(122, 152, 154, 0.25);
         }
 
         .history-header { display: flex; justify-content: space-between; align-items: center; }
@@ -147,33 +160,33 @@
         .history-periods { display: flex; flex-wrap: wrap; gap: 6px; }
         
         .period-badge { 
-            background: rgba(255, 255, 255, 0.08); border: 1px solid var(--glass-border); 
+            background: rgba(193, 174, 141, 0.1); border: 1px solid var(--glass-border); 
             padding: 4px 12px; border-radius: 6px; font-size: 0.85rem; color: var(--text-main); 
         }
 
         .history-actions { display: flex; gap: 8px; }
-        .text-btn { background: rgba(255,255,255,0.05); border: none; border-radius: 6px; padding: 5px 10px; font-size: 0.8rem; cursor: pointer; color: white; transition: 0.2s; }
-        .text-btn:hover { background: rgba(255,255,255,0.2); }
-        .text-btn.edit { color: #82c0ff; }
-        .text-btn.delete { color: #ff918c; }
+        .text-btn { background: rgba(0,0,0,0.2); border: none; border-radius: 6px; padding: 5px 10px; font-size: 0.8rem; cursor: pointer; color: var(--text-main); transition: 0.2s; }
+        .text-btn:hover { background: var(--glass-hover); }
+        .text-btn.edit { color: var(--c-sand); }
+        .text-btn.delete { color: var(--c-rust); }
         .tag { font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; margin-left: 8px; font-weight: normal; }
 
         .batch-actions { display: flex; align-items: center; gap: 12px; }
         .batch-actions label { font-size: 0.85rem; display: flex; align-items: center; gap: 4px; cursor: pointer; color: var(--text-main); }
-        .batch-actions input[type="checkbox"] { transform: scale(1.1); accent-color: var(--apple-blue); }
+        .batch-actions input[type="checkbox"] { transform: scale(1.1); accent-color: var(--primary-color); }
 
         .empty-state {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             height: 100%; text-align: center; color: var(--text-muted); padding: 0 30px;
         }
-        .empty-state-title { font-size: 1.5rem; font-weight: 500; color: rgba(255,255,255,0.8); margin-bottom: 15px; }
-        .empty-state-desc { font-size: 0.95rem; line-height: 1.6; background: rgba(255,255,255,0.03); padding: 20px; border-radius: 12px; border: 1px dashed var(--glass-border); text-align: left; }
+        .empty-state-title { font-size: 1.5rem; font-weight: 500; color: var(--text-main); margin-bottom: 15px; }
+        .empty-state-desc { font-size: 0.95rem; line-height: 1.6; background: rgba(0,0,0,0.2); padding: 20px; border-radius: 12px; border: 1px dashed var(--glass-border); text-align: left; }
         
-        /* 特殊標記樣式 */
+        /* 鐵鏽紅的特殊標記樣式 */
         .highlight-danger { color: var(--danger-red); font-weight: bold; font-size: 1.1em; }
 
         .mini-schedule-wrapper { position: relative; cursor: zoom-in; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.3s ease; transform-origin: top right; z-index: 10; }
-        .mini-schedule-wrapper:hover { transform: scale(2.2) translateX(-10px); z-index: 100; background: rgba(20, 20, 22, 0.98); box-shadow: -10px 10px 40px rgba(0,0,0,0.9); cursor: default; }
+        .mini-schedule-wrapper:hover { transform: scale(2.2) translateX(-10px); z-index: 100; background: #1a1b1a; box-shadow: -10px 10px 40px rgba(0,0,0,0.9); cursor: default; }
         .schedule-table { width: 100%; border-collapse: collapse; text-align: center; font-size: 0.65rem; color: var(--text-main); }
         .schedule-table th, .schedule-table td { border: 1px solid var(--glass-border); padding: 3px 1px; }
         .schedule-table th { color: var(--text-muted); font-weight: normal; }
@@ -187,7 +200,7 @@
         .subject-item { margin-bottom: 12px; }
         .subject-header { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.85rem; color: var(--text-muted); }
         .subject-header strong { color: var(--text-main); font-weight: 500; }
-        .progress-track { background: rgba(255, 255, 255, 0.05); border-radius: 6px; height: 6px; overflow: hidden; }
+        .progress-track { background: rgba(0, 0, 0, 0.3); border-radius: 6px; height: 6px; overflow: hidden; }
         .progress-fill { height: 100%; border-radius: 6px; transition: width 0.5s ease-out, background-color 0.5s ease; }
 
         @media (max-width: 900px) {
@@ -196,6 +209,7 @@
             .col-left, .col-right { width: 100%; }
             .scrollable-content { overflow-y: visible; max-height: none; }
             .mini-schedule-wrapper:hover { transform: scale(1); box-shadow: none; cursor: default; }
+            .override-history { max-height: none; }
         }
     </style>
 </head>
@@ -205,7 +219,7 @@
         
         <div class="col-left">
             <div class="glass-card time-block">
-                <div class="version-tag">V10.0</div>
+                <div class="version-tag">V11.0</div>
                 <div class="time-clock" id="realTimeClock">00:00:00</div>
                 <div class="time-date" id="realTimeDate">載入日期中...</div>
             </div>
@@ -214,8 +228,7 @@
                 <div class="section-header">
                     <h2>調課歷史</h2>
                 </div>
-                <div class="scrollable-content" id="overridesContainer">
-                    </div>
+                <div class="scrollable-content" id="overridesContainer"></div>
             </div>
 
             <div class="glass-card" style="flex-grow: 1;">
@@ -228,7 +241,7 @@
                 </div>
                 
                 <div class="select-all-wrapper">
-                    <label class="checkbox-label" style="background: rgba(10, 132, 255, 0.1); border-color: rgba(10, 132, 255, 0.3);">
+                    <label class="checkbox-label" style="background: rgba(122, 152, 154, 0.15); border-color: rgba(122, 152, 154, 0.3);">
                         <input type="checkbox" id="selectAll" onchange="toggleAllPeriods(this)"> 全天選取
                     </label>
                 </div>
@@ -245,7 +258,7 @@
                 
                 <div style="margin-top: auto;">
                     <button class="main-btn" id="submitBtn" onclick="submitLeave()">送出資料</button>
-                    <button class="main-btn" id="cancelBtn" onclick="cancelEdit()" style="display:none; margin-top:8px; background:rgba(255,255,255,0.1); color: var(--text-muted);">取消修改</button>
+                    <button class="main-btn" id="cancelBtn" onclick="cancelEdit()" style="display:none; margin-top:8px; background:rgba(193, 174, 141, 0.15); color: var(--text-main);">取消修改</button>
                 </div>
             </div>
         </div>
@@ -363,7 +376,6 @@
             return `${y}-${m}-${d}`;
         }
 
-        // 渲染調課歷史區塊
         function renderOverrides() {
             const container = document.getElementById('overridesContainer');
             if (!schoolData.overrides || schoolData.overrides.length === 0) {
@@ -599,7 +611,6 @@
             });
         }
 
-        // 左側登記區塊的事件
         function toggleAllPeriods(checkbox) {
             const cbs = document.querySelectorAll('.period-cb');
             cbs.forEach(cb => cb.checked = checkbox.checked);
@@ -613,7 +624,6 @@
             }
         });
 
-        // 歷史紀錄區塊的批次選取事件
         function toggleHistoryRow(index) {
             const cb = document.getElementById(`cb-${index}`);
             const row = document.getElementById(`history-row-${index}`);
@@ -735,7 +745,7 @@
 
         function updateAll() {
             const userLeaves = getUserLeaves();
-            renderOverrides(); // 渲染調課歷史
+            renderOverrides(); 
             renderDashboard();
             renderHistory();
             updateChartAndStats(userLeaves);
