@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>學期請假戰情看板</title>
+    <title>學期缺曠管理系統</title>
     <style>
-        /* iOS Dark Mode & Glassmorphism */
         :root {
             --bg-gradient: linear-gradient(135deg, #1c1c1e 0%, #000000 100%);
             --glass-bg: rgba(255, 255, 255, 0.08);
@@ -16,7 +15,9 @@
             --warn-yellow: #ffd60a;
             --danger-red: #ff453a;
             --apple-blue: #0a84ff;
-            --card-radius: 20px;
+            --sick-color: #5e5ce6;
+            --personal-color: #ff9f0a;
+            --card-radius: 16px;
         }
 
         body {
@@ -24,15 +25,36 @@
             background: var(--bg-gradient);
             color: var(--text-main);
             margin: 0;
-            padding: 15px; /* 手機版邊距稍微縮小 */
-            min-height: 100vh;
+            padding: 20px;
+            height: 100vh;
+            box-sizing: border-box;
+            overflow: hidden; /* 桌面版禁止整頁滾動 */
         }
 
-        h1, h2, h3 { margin-top: 0; font-weight: 600; }
-        h1 { font-size: 1.5rem; text-align: center; margin-bottom: 20px; }
-        h2 { font-size: 1.2rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 10px; margin-bottom: 15px;}
+        h2, h3 { margin-top: 0; font-weight: 600; font-size: 1.2rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 10px; margin-bottom: 15px; }
 
-        /* 玻璃擬態卡片 */
+        /* 儀表板網格排版 (桌面版) */
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            height: calc(100vh - 40px);
+        }
+
+        .left-column {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .right-column {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow: hidden;
+        }
+
+        /* 玻璃擬態卡片與自訂滾動條 */
         .glass-card {
             background: var(--glass-bg);
             backdrop-filter: blur(20px);
@@ -40,9 +62,21 @@
             border: 1px solid var(--glass-border);
             border-radius: var(--card-radius);
             padding: 20px;
-            margin-bottom: 20px;
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
         }
+
+        .scrollable-content {
+            overflow-y: auto;
+            flex-grow: 1;
+            padding-right: 10px;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.4); }
 
         /* 戰情看板 */
         .subject-item { margin-bottom: 15px; }
@@ -50,136 +84,165 @@
         .progress-track { background: rgba(255, 255, 255, 0.1); border-radius: 10px; height: 10px; overflow: hidden; }
         .progress-fill { height: 100%; border-radius: 10px; transition: width 0.5s ease, background-color 0.5s ease; }
 
-        /* 表單元素 (手機版最佳化) */
-        .alert-box {
-            background: rgba(255, 214, 10, 0.15);
-            border-left: 4px solid var(--warn-yellow);
-            color: #ffea7f;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            font-size: 0.85rem;
-            line-height: 1.5;
-        }
-        input[type="date"] {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid var(--glass-border);
-            color: white;
-            padding: 12px 15px; /* 加大觸控範圍 */
-            border-radius: 10px;
-            width: 100%;
-            box-sizing: border-box;
-            font-size: 1rem;
-            margin-bottom: 15px;
-            color-scheme: dark;
-        }
-        
-        /* 節次選擇網格 (適合手機點擊) */
-        .checkbox-group {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        .checkbox-label {
+        /* 圓餅圖區塊 */
+        .chart-container {
             display: flex;
             align-items: center;
             justify-content: center;
+            gap: 20px;
+            padding: 10px 0;
+        }
+        .pie-chart {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: conic-gradient(var(--text-muted) 0% 100%);
+            transition: background 0.5s;
+        }
+        .chart-legend { display: flex; flex-direction: column; gap: 8px; font-size: 0.9rem; }
+        .legend-item { display: flex; align-items: center; gap: 8px; }
+        .legend-color { width: 12px; height: 12px; border-radius: 3px; }
+
+        /* 表單元素 */
+        .form-row { display: flex; gap: 10px; margin-bottom: 15px; }
+        .form-group { flex: 1; }
+        .form-group label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 5px; }
+        
+        input[type="date"], select {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--glass-border);
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            width: 100%;
+            box-sizing: border-box;
+            font-size: 0.95rem;
+            color-scheme: dark;
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        .checkbox-label {
+            display: flex; align-items: center; justify-content: center;
             background: rgba(255, 255, 255, 0.05);
-            padding: 12px 5px;
-            border-radius: 10px;
-            cursor: pointer;
-            border: 1px solid transparent;
-            font-size: 0.9rem;
-            transition: 0.2s;
+            padding: 8px 5px; border-radius: 8px; cursor: pointer;
+            border: 1px solid transparent; font-size: 0.85rem; transition: 0.2s;
         }
         .checkbox-label:active { background: rgba(255, 255, 255, 0.1); }
-        .checkbox-label input { margin-right: 6px; transform: scale(1.2); accent-color: var(--apple-blue); }
+        .checkbox-label input { margin-right: 4px; }
         
-        /* 全選按鈕獨立樣式 */
-        .select-all-wrapper { margin-bottom: 15px; }
-        .select-all-wrapper .checkbox-label { background: rgba(10, 132, 255, 0.15); font-weight: bold; width: 100%; }
+        .select-all-wrapper .checkbox-label { background: rgba(10, 132, 255, 0.15); width: 100%; margin-bottom: 10px;}
 
         button.main-btn {
-            background: var(--apple-blue);
-            color: white;
-            border: none;
-            padding: 15px;
-            border-radius: 12px;
-            width: 100%;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
+            background: var(--apple-blue); color: white; border: none; padding: 12px;
+            border-radius: 8px; width: 100%; font-size: 1rem; font-weight: 600; cursor: pointer;
         }
         button.main-btn:active { transform: scale(0.98); opacity: 0.8; }
-        
-        /* 歷史紀錄區塊 */
+
+        /* 歷史紀錄 */
         .history-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid var(--glass-border);
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 0; border-bottom: 1px solid var(--glass-border);
         }
         .history-item:last-child { border-bottom: none; }
-        .history-info strong { font-size: 1rem; display: block; margin-bottom: 4px; }
-        .history-info span { font-size: 0.85rem; color: var(--text-muted); }
-        .history-actions { display: flex; gap: 10px; }
-        .icon-btn {
-            background: rgba(255,255,255,0.1);
-            border: none;
-            border-radius: 8px;
-            padding: 8px 12px;
-            font-size: 1rem;
-            cursor: pointer;
-            color: white;
+        .history-info strong { font-size: 0.95rem; display: block; margin-bottom: 4px; }
+        .history-info span { font-size: 0.8rem; color: var(--text-muted); }
+        .history-actions { display: flex; gap: 8px; }
+        .text-btn {
+            background: rgba(255,255,255,0.1); border: none; border-radius: 6px;
+            padding: 5px 10px; font-size: 0.8rem; cursor: pointer; color: white;
         }
-        .icon-btn.edit { background: rgba(10, 132, 255, 0.2); }
-        .icon-btn.delete { background: rgba(255, 69, 58, 0.2); }
+        .text-btn.edit { background: rgba(10, 132, 255, 0.2); color: #82c0ff; }
+        .text-btn.delete { background: rgba(255, 69, 58, 0.2); color: #ff918c; }
+
+        /* 手機版響應式設定 */
+        @media (max-width: 768px) {
+            body { height: auto; overflow: auto; }
+            .dashboard-layout { grid-template-columns: 1fr; height: auto; display: flex; flex-direction: column; }
+            .left-column, .right-column { overflow: visible; }
+            .glass-card { flex-grow: 0; }
+            .scrollable-content { overflow-y: visible; max-height: none; }
+        }
     </style>
 </head>
 <body>
 
-    <h1>📊 缺曠扣打管理</h1>
-
-    <div class="glass-card">
-        <h2>即時戰情</h2>
-        <div id="subjectsContainer"></div>
-    </div>
-
-    <div class="glass-card">
-        <h2 id="formTitle">📝 登記請假</h2>
-        <div class="alert-box">
-            <strong>⚠️ 溫馨提醒：</strong><br>
-            僅【事假】與【病假】會計入額度。公假、喪假等請<strong>不要</strong>輸入！
+    <div class="dashboard-layout">
+        <div class="left-column">
+            <div class="glass-card" style="height: 100%;">
+                <h2>即時戰情分析</h2>
+                <div class="scrollable-content" id="subjectsContainer">
+                    </div>
+            </div>
         </div>
 
-        <input type="date" id="leaveDate" min="2026-01-21" max="2026-06-30" required>
+        <div class="right-column">
+            
+            <div class="glass-card" style="flex-shrink: 0;">
+                <h2>假別統計比例</h2>
+                <div class="chart-container">
+                    <div class="pie-chart" id="pieChart"></div>
+                    <div class="chart-legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: var(--personal-color);"></div>
+                            <span id="personalCount">事假: 0 節</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: var(--sick-color);"></div>
+                            <span id="sickCount">病假: 0 節</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-        <div class="select-all-wrapper">
-            <label class="checkbox-label">
-                <input type="checkbox" id="selectAll" onchange="toggleAllPeriods(this)"> 全選 (整天)
-            </label>
+            <div class="glass-card" style="flex-shrink: 0;">
+                <h2 id="formTitle">登記請假紀錄</h2>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>日期</label>
+                        <input type="date" id="leaveDate" min="2026-01-21" max="2026-06-30" required>
+                    </div>
+                    <div class="form-group">
+                        <label>假別</label>
+                        <select id="leaveType">
+                            <option value="事假">事假</option>
+                            <option value="病假">病假</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="select-all-wrapper">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="selectAll" onchange="toggleAllPeriods(this)"> 全選 (整天)
+                    </label>
+                </div>
+                
+                <div class="checkbox-group" id="periodCheckboxes">
+                    <label class="checkbox-label"><input type="checkbox" class="period-cb" value="1"> 第 1 節</label>
+                    <label class="checkbox-label"><input type="checkbox" class="period-cb" value="2"> 第 2 節</label>
+                    <label class="checkbox-label"><input type="checkbox" class="period-cb" value="3"> 第 3 節</label>
+                    <label class="checkbox-label"><input type="checkbox" class="period-cb" value="4"> 第 4 節</label>
+                    <label class="checkbox-label"><input type="checkbox" class="period-cb" value="5"> 第 5 節</label>
+                    <label class="checkbox-label"><input type="checkbox" class="period-cb" value="6"> 第 6 節</label>
+                    <label class="checkbox-label"><input type="checkbox" class="period-cb" value="7"> 第 7 節</label>
+                </div>
+
+                <button class="main-btn" id="submitBtn" onclick="submitLeave()">送出資料</button>
+                <button class="main-btn" id="cancelBtn" onclick="cancelEdit()" style="display:none; margin-top:10px; background:rgba(255,255,255,0.2);">取消修改</button>
+            </div>
+
+            <div class="glass-card" style="flex-grow: 1; overflow: hidden;">
+                <h2>歷史紀錄</h2>
+                <div class="scrollable-content" id="historyContainer">
+                    </div>
+            </div>
+
         </div>
-        
-        <div class="checkbox-group" id="periodCheckboxes">
-            <label class="checkbox-label"><input type="checkbox" class="period-cb" value="1"> 第 1 節</label>
-            <label class="checkbox-label"><input type="checkbox" class="period-cb" value="2"> 第 2 節</label>
-            <label class="checkbox-label"><input type="checkbox" class="period-cb" value="3"> 第 3 節</label>
-            <label class="checkbox-label"><input type="checkbox" class="period-cb" value="4"> 第 4 節</label>
-            <label class="checkbox-label"><input type="checkbox" class="period-cb" value="5"> 第 5 節</label>
-            <label class="checkbox-label"><input type="checkbox" class="period-cb" value="6"> 第 6 節</label>
-            <label class="checkbox-label"><input type="checkbox" class="period-cb" value="7"> 第 7 節</label>
-        </div>
-
-        <button class="main-btn" id="submitBtn" onclick="submitLeave()">送出登記</button>
-        <button class="main-btn" id="cancelBtn" onclick="cancelEdit()" style="display:none; margin-top:10px; background:rgba(255,255,255,0.2);">取消修改</button>
-    </div>
-
-    <div class="glass-card">
-        <h2>📅 請假紀錄</h2>
-        <div id="historyContainer"></div>
     </div>
 
     <script>
@@ -214,7 +277,7 @@
 
         let dailyScheduleMap = {}; 
         let baseSubjectStats = {};
-        let editingIndex = -1; // 用來追蹤目前正在修改哪一筆紀錄
+        let editingIndex = -1;
 
         function generateCalendar() {
             const { semester, schedules, overrides } = schoolData;
@@ -255,54 +318,100 @@
         }
 
         function getUserLeaves() {
-            return JSON.parse(localStorage.getItem('myLeaves')) || [];
+            return JSON.parse(localStorage.getItem('myLeavesV2')) || [];
         }
 
         function saveUserLeaves(leaves) {
-            // 排序：讓日期新的排在前面
             leaves.sort((a, b) => new Date(b.date) - new Date(a.date));
-            localStorage.setItem('myLeaves', JSON.stringify(leaves));
+            localStorage.setItem('myLeavesV2', JSON.stringify(leaves));
+        }
+
+        function updateChartAndStats(userLeaves) {
+            let personalCount = 0;
+            let sickCount = 0;
+
+            userLeaves.forEach(leave => {
+                // 如果舊資料沒有 type 屬性，預設歸類為事假
+                const type = leave.type || '事假';
+                if (type === '事假') personalCount += leave.periods.length;
+                else if (type === '病假') sickCount += leave.periods.length;
+            });
+
+            document.getElementById('personalCount').innerText = `事假: ${personalCount} 節`;
+            document.getElementById('sickCount').innerText = `病假: ${sickCount} 節`;
+
+            const total = personalCount + sickCount;
+            const chart = document.getElementById('pieChart');
+            
+            if (total === 0) {
+                chart.style.background = 'var(--glass-border)';
+            } else {
+                const personalPct = (personalCount / total) * 100;
+                chart.style.background = `conic-gradient(var(--personal-color) 0% ${personalPct}%, var(--sick-color) ${personalPct}% 100%)`;
+            }
         }
 
         function renderDashboard() {
             const userLeaves = getUserLeaves();
             let currentStats = JSON.parse(JSON.stringify(baseSubjectStats));
+            let totalLeavesAny = 0;
 
             userLeaves.forEach(leave => {
                 const daySchedule = dailyScheduleMap[leave.date];
                 if (daySchedule) {
                     leave.periods.forEach(p => {
                         const subject = daySchedule[p];
-                        if (subject && currentStats[subject]) currentStats[subject].leavesTaken++;
+                        if (subject && currentStats[subject]) {
+                            currentStats[subject].leavesTaken++;
+                            totalLeavesAny++;
+                        }
                     });
                 }
             });
 
+            // 將物件轉為陣列以便排序
+            let statsArray = Object.keys(currentStats).map(subject => {
+                const data = currentStats[subject];
+                const threshold = Math.floor(data.totalPeriods / 3);
+                const remaining = threshold - data.leavesTaken;
+                const percentUsed = threshold > 0 ? (data.leavesTaken / threshold) * 100 : 0;
+                return { subject, totalPeriods: data.totalPeriods, threshold, leavesTaken: data.leavesTaken, remaining, percentUsed };
+            });
+
+            // 動態排序邏輯
+            if (totalLeavesAny === 0) {
+                // 沒有請假時，總節數由大到小
+                statsArray.sort((a, b) => b.totalPeriods - a.totalPeriods);
+            } else {
+                // 有請假時，危險度由大到小 (百分比高 -> 剩餘節數少 -> 總節數多)
+                statsArray.sort((a, b) => {
+                    if (b.percentUsed !== a.percentUsed) return b.percentUsed - a.percentUsed;
+                    if (a.remaining !== b.remaining) return a.remaining - b.remaining;
+                    return b.totalPeriods - a.totalPeriods;
+                });
+            }
+
             const container = document.getElementById('subjectsContainer');
             container.innerHTML = '';
 
-            for (const [subject, data] of Object.entries(currentStats)) {
-                const threshold = Math.floor(data.totalPeriods / 3);
-                const remaining = threshold - data.leavesTaken;
-                const percentUsed = (data.leavesTaken / threshold) * 100;
-
+            statsArray.forEach(data => {
                 let colorClass = 'var(--safe-green)';
-                if (percentUsed >= 80) colorClass = 'var(--danger-red)';
-                else if (percentUsed >= 50) colorClass = 'var(--warn-yellow)';
+                if (data.percentUsed >= 80) colorClass = 'var(--danger-red)';
+                else if (data.percentUsed >= 50) colorClass = 'var(--warn-yellow)';
 
                 const html = `
                     <div class="subject-item">
                         <div class="subject-header">
-                            <strong>${subject}</strong>
-                            <span>剩 <b>${remaining}</b> 節 (已請 ${data.leavesTaken}/${threshold})</span>
+                            <strong>${data.subject}</strong>
+                            <span>剩 <b>${data.remaining}</b> 節 (已用 ${data.leavesTaken}/${data.threshold})</span>
                         </div>
                         <div class="progress-track">
-                            <div class="progress-fill" style="width: ${Math.min(percentUsed, 100)}%; background-color: ${colorClass};"></div>
+                            <div class="progress-fill" style="width: ${Math.min(data.percentUsed, 100)}%; background-color: ${colorClass};"></div>
                         </div>
                     </div>
                 `;
                 container.innerHTML += html;
-            }
+            });
         }
 
         function renderHistory() {
@@ -311,22 +420,24 @@
             container.innerHTML = '';
 
             if (userLeaves.length === 0) {
-                container.innerHTML = '<div style="text-align:center; color: var(--text-muted); padding: 10px;">尚無請假紀錄</div>';
+                container.innerHTML = '<div style="text-align:center; color: var(--text-muted); padding: 10px;">目前無資料</div>';
                 return;
             }
 
             userLeaves.forEach((leave, index) => {
-                // 將陣列數字排序，看起來比較整齊
                 const sortedPeriods = [...leave.periods].sort((a, b) => a - b);
+                const typeText = leave.type || '事假';
+                const typeColor = typeText === '事假' ? 'var(--personal-color)' : 'var(--sick-color)';
+
                 container.innerHTML += `
                     <div class="history-item">
                         <div class="history-info">
-                            <strong>${leave.date}</strong>
+                            <strong>${leave.date} <span style="font-size:0.8rem; color:${typeColor}; border:1px solid ${typeColor}; padding:2px 4px; border-radius:4px; margin-left:5px;">${typeText}</span></strong>
                             <span>第 ${sortedPeriods.join(', ')} 節</span>
                         </div>
                         <div class="history-actions">
-                            <button class="icon-btn edit" onclick="editLeave(${index})">✏️</button>
-                            <button class="icon-btn delete" onclick="deleteLeave(${index})">🗑️</button>
+                            <button class="text-btn edit" onclick="editLeave(${index})">修改</button>
+                            <button class="text-btn delete" onclick="deleteLeave(${index})">刪除</button>
                         </div>
                     </div>
                 `;
@@ -340,25 +451,23 @@
 
         function submitLeave() {
             const dateInput = document.getElementById('leaveDate').value;
-            if (!dateInput) return alert("請選擇日期！");
+            const typeInput = document.getElementById('leaveType').value;
 
-            const selectedPeriods = Array.from(document.querySelectorAll('.period-cb:checked')).map(cb => cb.value);
-            if (selectedPeriods.length === 0) return alert("請至少勾選一節課！");
+            if (!dateInput) return alert("請選擇日期");
+
+            const selectedPeriods = Array.from(document.querySelectorAll('.period-cb:checked')).map(cb => parseInt(cb.value));
+            if (selectedPeriods.length === 0) return alert("請至少勾選一節課");
 
             let userLeaves = getUserLeaves();
 
             if (editingIndex > -1) {
-                // 更新模式
-                userLeaves[editingIndex] = { date: dateInput, periods: selectedPeriods };
-                editingIndex = -1; // 結束編輯狀態
-                document.getElementById('formTitle').innerText = '📝 登記請假';
-                document.getElementById('submitBtn').innerText = '送出登記';
+                userLeaves[editingIndex] = { date: dateInput, type: typeInput, periods: selectedPeriods };
+                editingIndex = -1;
+                document.getElementById('formTitle').innerText = '登記請假紀錄';
+                document.getElementById('submitBtn').innerText = '送出資料';
                 document.getElementById('cancelBtn').style.display = 'none';
-                alert("✅ 修改成功！");
             } else {
-                // 新增模式
-                userLeaves.push({ date: dateInput, periods: selectedPeriods });
-                alert("✅ 登記成功！");
+                userLeaves.push({ date: dateInput, type: typeInput, periods: selectedPeriods });
             }
 
             saveUserLeaves(userLeaves);
@@ -367,7 +476,7 @@
         }
 
         function deleteLeave(index) {
-            if (!confirm("確定要刪除這筆請假紀錄嗎？")) return;
+            if (!confirm("確定要刪除這筆紀錄嗎？")) return;
             let userLeaves = getUserLeaves();
             userLeaves.splice(index, 1);
             saveUserLeaves(userLeaves);
@@ -378,30 +487,24 @@
             const userLeaves = getUserLeaves();
             const leave = userLeaves[index];
             
-            // 填入表單
             document.getElementById('leaveDate').value = leave.date;
-            const cbs = document.querySelectorAll('.period-cb');
-            cbs.forEach(cb => {
-                cb.checked = leave.periods.includes(cb.value);
-            });
+            document.getElementById('leaveType').value = leave.type || '事假';
             
-            // 檢查全選框狀態
+            const cbs = document.querySelectorAll('.period-cb');
+            cbs.forEach(cb => { cb.checked = leave.periods.includes(parseInt(cb.value)); });
+            
             document.getElementById('selectAll').checked = leave.periods.length === 7;
 
-            // 切換為編輯模式介面
             editingIndex = index;
-            document.getElementById('formTitle').innerText = '✏️ 修改紀錄';
+            document.getElementById('formTitle').innerText = '修改紀錄';
             document.getElementById('submitBtn').innerText = '儲存修改';
             document.getElementById('cancelBtn').style.display = 'block';
-
-            // 滾動到表單區
-            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function cancelEdit() {
             editingIndex = -1;
-            document.getElementById('formTitle').innerText = '📝 登記請假';
-            document.getElementById('submitBtn').innerText = '送出登記';
+            document.getElementById('formTitle').innerText = '登記請假紀錄';
+            document.getElementById('submitBtn').innerText = '送出資料';
             document.getElementById('cancelBtn').style.display = 'none';
             resetForm();
         }
@@ -409,14 +512,17 @@
         function resetForm() {
             const today = new Date().toLocaleDateString('en-CA');
             document.getElementById('leaveDate').value = today;
+            document.getElementById('leaveType').value = '事假';
             document.getElementById('selectAll').checked = false;
             const cbs = document.querySelectorAll('.period-cb');
             cbs.forEach(cb => cb.checked = false);
         }
 
         function updateAll() {
+            const userLeaves = getUserLeaves();
             renderDashboard();
             renderHistory();
+            updateChartAndStats(userLeaves);
         }
 
         window.onload = () => {
