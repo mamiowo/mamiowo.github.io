@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>學期缺曠管理系統 V14.0</title>
+    <title>學期缺曠管理系統 V14.1</title>
     <style>
         :root {
             /* 全域色票變數 (莫蘭迪色系) */
@@ -123,6 +123,13 @@
             font-size: 0.75rem; color: var(--c-sand); font-weight: bold;
         }
 
+        /* 新增：拜訪次數 (左上角) */
+        .visitor-count {
+            position: absolute; top: 10px; left: 12px;
+            font-size: 0.75rem; color: var(--c-sand); font-weight: bold;
+            opacity: 0.8;
+        }
+
         .mode-toggle {
             position: fixed; top: 15px; right: 15px; z-index: 1000;
             background: var(--glass-bg); border: 1px solid var(--glass-border);
@@ -202,6 +209,7 @@
 
         .history-actions { display: flex; gap: 8px; }
         .text-btn { background: var(--text-btn-bg); border: 1px solid rgba(193, 174, 141, 0.3); border-radius: 6px; padding: 5px 10px; font-size: 0.8rem; cursor: pointer; color: var(--text-muted); transition: 0.2s; font-weight: 500; }
+        .text-btn:hover { background: var(--glass-hover); }
         .text-btn.edit { color: var(--primary-color); border-color: rgba(122, 152, 154, 0.3); background: rgba(122, 152, 154, 0.05); }
         .text-btn.delete { color: var(--danger-red); border-color: rgba(198, 112, 82, 0.3); background: rgba(198, 112, 82, 0.05); }
         .tag { font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; margin-left: 8px; font-weight: 600; }
@@ -219,7 +227,6 @@
         
         .highlight-danger { color: var(--danger-red); font-weight: 700; font-size: 1.1em; }
 
-        /* 課表放大效果 - 使用實體背景 var(--solid-bg) */
         .mini-schedule-wrapper { position: relative; cursor: zoom-in; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.3s ease; transform-origin: top right; z-index: 10; }
         .mini-schedule-wrapper:hover { transform: scale(2.2) translateX(-10px); z-index: 100; background: var(--solid-bg); box-shadow: -10px 10px 40px rgba(0,0,0,0.25); cursor: default; }
         .schedule-table { width: 100%; border-collapse: collapse; text-align: center; font-size: 0.65rem; color: var(--text-main); }
@@ -238,13 +245,12 @@
         .progress-track { background: var(--progress-track-bg); border-radius: 6px; height: 6px; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); }
         .progress-fill { height: 100%; border-radius: 6px; transition: width 0.5s ease-out, background-color 0.5s ease; }
 
-        /* --- 手機版排版大升級 --- */
         @media (max-width: 900px) {
             body { 
                 height: auto; 
                 overflow: auto; 
                 padding: 10px; 
-                padding-top: 55px; /* 留出空間給右上角的切換按鈕 */
+                padding-top: 55px;
             }
             .dashboard-layout { flex-direction: column; height: auto; gap: 20px; }
             .col-left, .col-right, .col-main { width: 100%; min-width: 100%; }
@@ -255,24 +261,26 @@
             .mode-toggle { top: 10px; right: 10px; padding: 8px 12px; font-size: 0.85rem; }
             .time-clock { font-size: 2.2rem; }
             
-            /* 節次選擇改為雙欄網格，加大點擊區域 */
             .checkbox-group { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
             .checkbox-label { padding: 12px 10px; font-size: 1rem; }
-            .checkbox-group .checkbox-label:last-child { grid-column: span 2; } /* 第7節橫跨兩欄 */
+            .checkbox-group .checkbox-label:last-child { grid-column: span 2; }
 
-            /* 歷史紀錄卡片重排 */
             .history-header { flex-direction: column; align-items: flex-start; gap: 10px; }
             .history-actions { width: 100%; justify-content: flex-end; border-top: 1px solid var(--glass-border); padding-top: 8px; margin-top: 4px; }
         }
     </style>
 </head>
-<body class="dark-mode"> <button class="mode-toggle" id="modeToggle">MODE</button>
+<body class="dark-mode">
+
+    <button class="mode-toggle" id="modeToggle">MODE</button>
 
     <div class="dashboard-layout">
         
         <div class="col-left">
             <div class="glass-card time-block">
-                <div class="version-tag">V14.0</div>
+                <div class="visitor-count" title="造訪次數" id="visitCountDisplay">0</div>
+                <div class="version-tag">V14.1</div>
+                
                 <div class="time-clock" id="realTimeClock">00:00:00</div>
                 <div class="time-date" id="realTimeDate">載入日期中...</div>
             </div>
@@ -366,16 +374,22 @@
     </div>
 
     <script>
-        // --- 日夜模式切換邏輯 V14.0 ---
+        // --- V14.1 造訪次數邏輯 ---
+        function updateVisitorCount() {
+            let count = localStorage.getItem('siteVisits') || 0;
+            count = parseInt(count) + 1;
+            localStorage.setItem('siteVisits', count);
+            document.getElementById('visitCountDisplay').innerText = count;
+        }
+
+        // --- 日夜模式切換邏輯 ---
         const toggleBtn = document.getElementById('modeToggle');
         const bodyObj = document.body;
 
-        // 讀取暫存設定，預設改為 'dark'
         const currentTheme = localStorage.getItem('theme') || 'dark';
         if (currentTheme === 'light') {
             bodyObj.classList.remove('dark-mode');
         } else {
-            // 如果是 dark 或 null(初次進入)，確保加上 dark-mode
             bodyObj.classList.add('dark-mode'); 
         }
 
@@ -831,6 +845,7 @@
         }
 
         window.onload = () => {
+            updateVisitorCount(); // V14.1 執行造訪次數更新
             generateCalendar();
             resetForm();
             updateAll();
